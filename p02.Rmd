@@ -2,4 +2,74 @@
 title: "Portfolio 2"
 ---
 
-> The projects should be numbered consecutively (i.e., in the order in which you began them), and should include for each project a description of the goal, the product (computer program, hand graph, computer graph, etc.), the data, and some interpretation. Reports must be reproducible and of high quality in terms of writing, grammar, presentation, etc.
+I learned substantial about R in these past few weeks both in this course and in Veronica's stats course. In this project, I want to return to a dataset I worked on a year ago with no success. I wanted it to do structural equation modelling on it, but it has too few data points. After consulting Veronica, now I want to try principal component analysis instead and conduct regression analyses with the principal components. 
+
+The data I use is the behavioral section of a large infant development project that my previous lab collected and is still collecting. I'm not typing out the project name here because the data are not published yet, I'm probably not supposed to use it, and this github repo is public. However, I'm using it now because I want to test my learning from the past few weeks, and there is no way to test it better than solving a problem/tackling a dataset that I couldn't solve/tackle before. 
+
+To give you an idea about the dataset, in this study, parents are given a wide range of questionnaires, from parenting practices, family functioning, to child social-emotional development. There are certainly many ways to look at the data with hypotheses. However, for the purpose of my practice, I'll explore the dataset as a whole for now, with the goal of trying to predict child social-emotional development with environmental factors.
+
+### Prep
+
+```{r prep}
+#install.packages("factoextra")
+
+library(readxl)
+library(factoextra)
+library(tidyverse)
+cbcp_bh <- read_excel("data/cbcp_bh.xlsx")
+
+# Mean imputation using mutate_all
+bh_data_mean_imputed <- cbcp_bh %>%
+  mutate_all(~ ifelse(is.na(.), mean(., na.rm = TRUE), .))
+```
+
+## Compute PCA
+
+```{r get-active-variables}
+cbcp_bh_active <- bh_data_mean_imputed[, 3:40]
+```
+
+```{r compute-pca}
+res.pca <- prcomp(cbcp_bh_active, scale = TRUE)
+```
+
+```{r vis-pca}
+fviz_eig(res.pca)
+
+fviz_pca_var(res.pca,
+             col.var = "contrib", # Color by contributions to the PC
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE     # Avoid text overlapping
+             )
+```
+
+```{r pca-results}
+# Eigenvalues
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+  
+# Results for Variables
+res.var <- get_pca_var(res.pca)
+res.var$coord          # Coordinates
+res.var$contrib        # Contributions to the PCs
+res.var$cos2           # Quality of representation 
+```
+
+## Predict child social-emotional development using PCA.
+
+```{r supplementary-vars}
+cbcp_bh_sup <- bh_data_mean_imputed[, 41:68]
+```
+
+```{r predict-sup}
+# Predict coordinates and compute cos2
+quanti.coord <- cor(cbcp_bh_sup, res.pca$x)
+quanti.cos2 <- quanti.coord^2
+# Graph of variables including supplementary variables
+p <- fviz_pca_var(res.pca)
+fviz_add(p, quanti.coord, color ="blue", geom="arrow")
+```
+
+So here is the visualization of the prediction of child social-emotional development from environmental factors. It is hard to read. And frankly, I don't fully understand everything I did here. I'll work on understanding and improving visualization of PCA in my later portfolio pieces. 
+
+Code reference: https://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/118-principal-component-analysis-in-r-prcomp-vs-princomp/#comments-list
