@@ -13,7 +13,7 @@
 
 <title>Portfolio 1</title>
 
-<script src="site_libs/header-attrs-2.13/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
@@ -141,11 +141,15 @@ $(document).ready(function () {
     href = "index.html";
   var menuAnchor = $('a[href="' + href + '"]');
 
-  // mark it active
-  menuAnchor.tab('show');
-
-  // if it's got a parent navbar menu mark it active as well
-  menuAnchor.closest('li.dropdown').addClass('active');
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
 
   // Navbar adjustments
   var navHeight = $(".navbar").first().height() + 15;
@@ -174,8 +178,8 @@ $(document).ready(function () {
   border-radius: 4px;
 }
 
-.tabset-dropdown > .nav-tabs > li.active:before {
-  content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
   font-family: 'Glyphicons Halflings';
   display: inline-block;
   padding: 10px;
@@ -183,16 +187,9 @@ $(document).ready(function () {
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-  content: "&#xe258;";
-  border: none;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-  content: "";
+  content: "\e258";
   font-family: 'Glyphicons Halflings';
-  display: inline-block;
-  padding: 10px;
-  border-right: 1px solid #ddd;
+  border: none;
 }
 
 .tabset-dropdown > .nav-tabs > li.active {
@@ -299,14 +296,195 @@ $(document).ready(function () {
 
 
 <blockquote>
-<p>The projects should be numbered consecutively (i.e., in the order in
-which you began them), and should include for each project a description
-of the goal, the product (computer program, hand graph, computer graph,
-etc.), the data, and some interpretation. Reports must be reproducible
-and of high quality in terms of writing, grammar, presentation, etc.</p>
+<p>This project intends to verify and test my understanding of data
+visualization in R using ggplot. The back story is that I talked to
+Thomas one day and learned that he has a complicated data visualization
+to redo in Word for his undergrad project. In light of my recent
+learning of ggplot, I propose to him to let me try doing it in R. If it
+works, it’ll be a easier and more efficient way if any amendments in
+needed in the future – he can just change a few codes instead of
+spending hours trying to draw the multilayer graph in Word.</p>
 </blockquote>
-<pre class="r"><code>library(tidyverse) 
-library(datasauRus)</code></pre>
+<p>To give you an idea, the plot I want to recreate looks like this:</p>
+<pre class="r"><code>original &lt;- image_read(&quot;p01/data/Figure 5.png&quot;)
+print(original)</code></pre>
+<pre><code>## # A tibble: 1 × 7
+##   format width height colorspace matte filesize density
+##   &lt;chr&gt;  &lt;int&gt;  &lt;int&gt; &lt;chr&gt;      &lt;lgl&gt;    &lt;int&gt; &lt;chr&gt;  
+## 1 PNG     3304   1620 sRGB       TRUE    441904 72x72</code></pre>
+<p><img src="p01_files/figure-html/original-1.png" width="1652" /></p>
+<p>Here are the steps I took to recreate the plot.</p>
+<div id="preparation." class="section level3">
+<h3>Preparation.</h3>
+<pre class="r"><code>data_project1 &lt;- read_excel(&quot;p01/data/data_project1.xlsx&quot;)</code></pre>
+</div>
+<div id="st-version." class="section level3">
+<h3>1st Version.</h3>
+<p>At first, I thought it’ll be simple to replicate the plot, so here’s
+the code I run.</p>
+<pre class="r"><code>ggplot(data = data_project1, 
+       mapping = aes(x = importance, y = predictors,
+                     color = category)) + 
+  geom_bar(stat=&#39;identity&#39;) +
+  facet_wrap(~ DV, ncol = 3)</code></pre>
+<pre><code>## Warning: Removed 28 rows containing missing values or values outside the scale range
+## (`geom_bar()`).</code></pre>
+<p><img src="p01_files/figure-html/1-attempt-1.png" width="1728" /> As
+it turns out, it’s not that simple, the problem is that some values are
+really small (e.g., 0.002240000), others are fairly large (e.g.,
+71.639730890). So when I map them onto the same scale, the small values
+disappear, and only large values are visible. So I went on an extensive
+effort to figure out how to customize the x axis scale so that all
+values are visible.</p>
+</div>
+<div id="nd-version." class="section level3">
+<h3>2nd Version.</h3>
+<p>The first idea I had in mind was to log the x axis.</p>
+<pre class="r"><code>#make another variable log_importance
+data_project1$log_importance &lt;- log(data_project1$importance, base = 2)
+
+#plot
+ggplot(data = data_project1, 
+       mapping = aes(x = log_importance, y = predictors,
+                     color = category)) + 
+  geom_bar(stat=&#39;identity&#39;) +
+  facet_wrap(~ DV, ncol = 3)</code></pre>
+<pre><code>## Warning: Removed 28 rows containing missing values or values outside the scale range
+## (`geom_bar()`).</code></pre>
+<p><img src="p01_files/figure-html/log-1.png" width="1824" /> Well, the
+numbers seem to be all visible, but some became negative.</p>
+</div>
+<div id="rd-version." class="section level3">
+<h3>3rd Version.</h3>
+<p>To make all numbers positive:</p>
+<pre class="r"><code>ggplot(data = data_project1, 
+       mapping = aes(x = abs(log_importance), y = predictors,
+                     color = category)) + 
+  geom_bar(stat=&#39;identity&#39;) +
+  facet_wrap(~ DV, ncol = 3)</code></pre>
+<pre><code>## Warning: Removed 28 rows containing missing values or values outside the scale range
+## (`geom_bar()`).</code></pre>
+<p><img src="p01_files/figure-html/log-positive-1.png" width="1824" />
+Great! Now they are all positive, but the x axis doesn’t reflect the
+true importance values.</p>
+</div>
+<div id="th-version." class="section level3">
+<h3>4th Version.</h3>
+<p>Therefore, I wanted to map the importance value onto the x axis that
+is drawn based on log_importance.</p>
+<pre class="r"><code>ggplot(data = data_project1, 
+       mapping = aes(x = abs(log_importance), y = predictors,
+                     color = DV)) + 
+  geom_bar(stat=&#39;identity&#39;) +
+  facet_wrap(~ DV, ncol = 3) + 
+  scale_x_continuous(breaks = abs(data_project1$log_importance), labels = data_project1$importance) +
+  theme_minimal()</code></pre>
+<pre><code>## Warning: Removed 28 rows containing missing values or values outside the scale range
+## (`geom_bar()`).</code></pre>
+<p><img src="p01_files/figure-html/log-positive-importance-1.png" width="1824" />
+That’s more like it. However, the x axis is too dense with values, so I
+asked ChatGPT to help me make the x axis more sparse.</p>
+</div>
+<div id="th-version.-1" class="section level3">
+<h3>5th Version.</h3>
+<p>Long story short, I tried a bunch of methods that Chat gives me. Only
+this one works, and it works perfectly. Even better, this method helps
+to solve two more problems: 1) if you haven’t noticed, the log
+transformation makes the bars from the first two facets higher than the
+last one, which is untrue; 2) within each facet, the contrast between
+each bar is less obvious than it should be. The current method helps to
+ensure that 1) the x-axis for the three facets are customized to the
+importance values they portray; 2) for the same outcome variable, the
+distance between different importance values is proportional to their
+original distance; 3) the contrast between facets are reasonable.</p>
+<pre class="r"><code>ggplot(data = data_project1, 
+       mapping = aes(x = importance, y = predictors,
+                     color = category)) + 
+  geom_bar(stat=&#39;identity&#39;) +
+  facet_wrap(~ DV, ncol = 3, scales = &quot;free_x&quot;) + #this is the key
+  scale_x_continuous(breaks = scales::breaks_extended(n = 4)) + # Adjust the sparsity of x-axis
+  theme_minimal() </code></pre>
+<pre><code>## Warning: Removed 28 rows containing missing values or values outside the scale range
+## (`geom_bar()`).</code></pre>
+<p><img src="p01_files/figure-html/chat-1.png" width="1824" /></p>
+</div>
+<div id="th-version.-2" class="section level3">
+<h3>6th Version.</h3>
+<p>That was great! But the bars of different categories are scattered
+around. I want to group them by their category.</p>
+<pre class="r"><code>ggplot(data = data_project1, 
+       mapping = aes(x = importance, y = fct_reorder(predictors, category),
+                     color = category)) + 
+  geom_bar(stat=&#39;identity&#39;) +
+  facet_wrap(~ DV, ncol = 3, scales = &quot;free_x&quot;) + 
+  scale_x_continuous(breaks = scales::breaks_extended(n = 4)) + # Adjust number of ticks
+  theme_minimal()</code></pre>
+<pre><code>## Warning: Removed 28 rows containing missing values or values outside the scale range
+## (`geom_bar()`).</code></pre>
+<p><img src="p01_files/figure-html/sort-bar-by-category-1.png" width="1824" />
+Now it’s very close to the original plot. However, I still want to
+perfect a few things: 1) Color only paints the edge of the bars. I don’t
+think it’s salient enough, so I want to change it to fill; 2) The labels
+of the outcomes are in one line. I want to change it to a few lines so
+that when we shorten the width of the plot, the whole labels are still
+intact; 3) The labels of the graph is lacking. I want to add them; 4)
+The font size is too small. I want to make it larger.</p>
+</div>
+<div id="voila-here-is-the-final-product" class="section level3">
+<h3>Voila! Here is the final product:</h3>
+<pre class="r"><code>#wrap the rows for DV
+data_project1$DV &lt;- str_wrap(data_project1$DV, width = 20)
+
+#plot
+ggplot(data = data_project1, 
+       mapping = aes(x = importance, y = fct_reorder(predictors, category),
+                     fill = category)) + 
+  geom_bar(stat=&#39;identity&#39;) +
+  facet_wrap(~ DV, ncol = 3, scales = &quot;free_x&quot;) + 
+  scale_x_continuous(breaks = scales::breaks_extended(n = 4)) + # Adjust number of ticks
+  theme_minimal(base_size = 16) +
+  labs(x = &quot;Importance of Variables&quot;, 
+       y = &quot;Predictor Variables&quot;, 
+       fill = &quot;Predictor Category&quot;,
+       title = &quot;The Importance Different Predictor Variables Hold on the Coming Out Outcomes in China&quot;)</code></pre>
+<pre><code>## Warning: Removed 28 rows containing missing values or values outside the scale range
+## (`geom_bar()`).</code></pre>
+<p><img src="p01_files/figure-html/final-1.png" width="1824" /></p>
+</div>
+<div id="final-thoughts." class="section level3">
+<h3>Final Thoughts.</h3>
+<p>Upon talking to Mason I realized that the key to data visualization
+is not to replicate or recreate (though these are important skills too),
+it’s to tell a story by a plot. I’m aware that this plot, though
+beautiful, has room for improvement. However, since I was unable to get
+a hold of Thomas in the past three days to learn more about the data
+behind this plot, I couldn’t think of a better way to improve this plot
+due to my limited imagination. One minor attempt, however, I want to try
+is listed below. Not sure if it’s an improvement, but here it is.</p>
+<pre class="r"><code>ggplot(data = data_project1, 
+       mapping = aes(x = importance, y = fct_reorder(predictors, category),
+                     fill = category)) + 
+  geom_bar(stat=&#39;identity&#39;) +
+  facet_wrap(category ~ DV, ncol = 3, scales = &quot;free_x&quot;) + 
+  scale_x_continuous(breaks = scales::breaks_extended(n = 4)) + # Adjust number of ticks
+  theme_minimal() +
+  labs(x = &quot;Importance of Variables&quot;, 
+       y = &quot;Predictors&quot;, 
+       fill = &quot;Predictor Category&quot;,
+       title = &quot;The Importance Different Predictor Variables Hold on the Coming Out Outcomes in China&quot;)</code></pre>
+<pre><code>## Warning: Removed 28 rows containing missing values or values outside the scale range
+## (`geom_bar()`).</code></pre>
+<p><img src="p01_files/figure-html/last-1.png" width="1920" /> Well, I
+intended to use the facet_grid() function to separate different
+categories into different rows of plots so they might look nicer?
+However, I couldn’t figure out a way for the empty rows to disappear, so
+now the plot looks redundant.</p>
+<p>Anyways, for the rest of this semester, I will prioritize
+story-telling when I work with visualizing datasets that I’m more
+familiar with, and if I get a chance to learn more about the current
+dataset. Nevertheless, I do think I had a good practice of ggplot and
+learned more about how to manipulating axis in this project.</p>
+</div>
 
 
 

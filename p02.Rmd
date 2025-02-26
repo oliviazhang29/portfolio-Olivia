@@ -2,11 +2,11 @@
 title: "Portfolio 2"
 ---
 
-I learned substantial about R in these past few weeks both in this course and in Veronica's stats course. In this project, I want to return to a dataset I worked on a year ago with no success. I wanted it to do structural equation modelling on it, but it has too few data points. After consulting Veronica, now I want to try principal component analysis instead and conduct regression analyses with the principal components. 
+> I learned substantial about R in these past few weeks both in this course and in Veronica's stats course. In this project, I want to return to a dataset I worked on a year ago with no success. I wanted it to do structural equation modelling on it, but it has too few data points. After consulting Veronica, now I want to try principal component analysis instead and conduct regression analyses with the principal components. 
 
-The data I use is the behavioral section of a large infant development project that my previous lab collected and is still collecting. I'm not typing out the project name here because the data are not published yet, I'm probably not supposed to use it, and this github repo is public. However, I'm using it now because I want to test my learning from the past few weeks, and there is no way to test it better than solving a problem/tackling a dataset that I couldn't solve/tackle before. 
+> The data I use is the behavioral section of a large infant development project that my previous lab collected and is still collecting. I'm not typing out the project name here because the data are not published yet, I'm probably not supposed to use it, and this github repo is public. However, I'm using it now because I want to test my learning from the past few weeks, and there is no way to test it better than solving a problem/tackling a dataset that I couldn't solve/tackle before. 
 
-To give you an idea about the dataset, in this study, parents are given a wide range of questionnaires, from parenting practices, family functioning, to child social-emotional development. There are certainly many ways to look at the data with hypotheses. However, for the purpose of my practice, I'll explore the dataset as a whole for now, with the goal of trying to predict child social-emotional development with environmental factors.
+> To give you an idea about the dataset, in this study, parents are given a wide range of questionnaires, from parenting practices, family functioning, to child social-emotional development. There are certainly many ways to look at the data with hypotheses. However, for the purpose of my practice, I'll explore the dataset as a whole for now, with the goal of trying to predict child social-emotional development with environmental factors.
 
 ### Prep
 
