@@ -295,6 +295,7 @@ $(document).ready(function () {
 </div>
 
 
+<blockquote>
 <p>I learned substantial about R in these past few weeks both in this
 course and in Veronica’s stats course. In this project, I want to return
 to a dataset I worked on a year ago with no success. I wanted it to do
@@ -302,6 +303,8 @@ structural equation modelling on it, but it has too few data points.
 After consulting Veronica, now I want to try principal component
 analysis instead and conduct regression analyses with the principal
 components.</p>
+</blockquote>
+<blockquote>
 <p>The data I use is the behavioral section of a large infant
 development project that my previous lab collected and is still
 collecting. I’m not typing out the project name here because the data
@@ -310,6 +313,8 @@ github repo is public. However, I’m using it now because I want to test
 my learning from the past few weeks, and there is no way to test it
 better than solving a problem/tackling a dataset that I couldn’t
 solve/tackle before.</p>
+</blockquote>
+<blockquote>
 <p>To give you an idea about the dataset, in this study, parents are
 given a wide range of questionnaires, from parenting practices, family
 functioning, to child social-emotional development. There are certainly
@@ -317,6 +322,7 @@ many ways to look at the data with hypotheses. However, for the purpose
 of my practice, I’ll explore the dataset as a whole for now, with the
 goal of trying to predict child social-emotional development with
 environmental factors.</p>
+</blockquote>
 <div id="prep" class="section level3">
 <h3>Prep</h3>
 <pre class="r"><code>#install.packages(&quot;factoextra&quot;)
@@ -2481,12 +2487,675 @@ fviz_add(p, quanti.coord, color =&quot;blue&quot;, geom=&quot;arrow&quot;)</code
 <p><img src="p02_files/figure-html/predict-sup-1.png" width="672" /></p>
 <p>So here is the visualization of the prediction of child
 social-emotional development from environmental factors. It is hard to
-read. And frankly, I not sure I one hundred percent understand
-everything I did here. I’ll work on understanding and improving
-visualization PCA in later portfolio pieces.</p>
+read. And frankly, I don’t fully understand everything I did here. I’ll
+work on understanding and improving visualization of PCA in my later
+portfolio pieces.</p>
 <p>Code reference: <a
 href="https://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/118-principal-component-analysis-in-r-prcomp-vs-princomp/#comments-list"
 class="uri">https://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/118-principal-component-analysis-in-r-prcomp-vs-princomp/#comments-list</a></p>
+</div>
+<div id="predict-child-social-emotional-development-using-pc1-pc2."
+class="section level2">
+<h2>Predict child social-emotional development using PC1 &amp; PC2.</h2>
+<p>The previous section is not really informative. After talking to
+Veronica and taking her suggestion of only using PC1 and PC2 to predict
+the outcome variables, here are the results.</p>
+<pre class="r"><code>scores &lt;- res.pca$x
+
+#regression for one DV, too slow
+#lm.12 &lt;- lm(cbcp_bh_sup$temperament_activity ~ scores[, 1] + scores[, 2])
+#summary(lm.12)
+
+#loop
+IV.12 &lt;- &quot;scores[, 1] + scores[, 2]&quot;
+models &lt;- list()
+for (DV in colnames(cbcp_bh_sup)) {
+  formula &lt;- as.formula(paste(DV, &quot;~&quot;, IV.12))
+  models[[DV]] &lt;- lm(formula, data = cbcp_bh_sup)
+}
+
+summary_all &lt;- lapply(models, summary)
+summary_all</code></pre>
+<pre><code>## $temperament_activity
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.73151 -0.37754 -0.04055  0.38026  1.91537 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.690000   0.121105  30.469   &lt;2e-16 ***
+## scores[, 1] -0.059082   0.041073  -1.438    0.159    
+## scores[, 2]  0.004367   0.056080   0.078    0.938    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.7563 on 36 degrees of freedom
+## Multiple R-squared:  0.0545, Adjusted R-squared:  0.001975 
+## F-statistic: 1.038 on 2 and 36 DF,  p-value: 0.3647
+## 
+## 
+## $temperament_rhythmic
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.25128 -0.43562 -0.07535  0.45055  1.84078 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.22333    0.12429  25.934   &lt;2e-16 ***
+## scores[, 1] -0.07385    0.04215  -1.752   0.0883 .  
+## scores[, 2] -0.06627    0.05756  -1.151   0.2571    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.7762 on 36 degrees of freedom
+## Multiple R-squared:  0.1088, Adjusted R-squared:  0.0593 
+## F-statistic: 2.198 on 2 and 36 DF,  p-value: 0.1257
+## 
+## 
+## $temperament_avoidability
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.40156 -0.71238 -0.04123  0.49572  2.65647 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.03667    0.16362  18.559   &lt;2e-16 ***
+## scores[, 1] -0.13515    0.05549  -2.435    0.020 *  
+## scores[, 2] -0.04152    0.07577  -0.548    0.587    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.022 on 36 degrees of freedom
+## Multiple R-squared:  0.1476, Adjusted R-squared:  0.1002 
+## F-statistic: 3.116 on 2 and 36 DF,  p-value: 0.05649
+## 
+## 
+## $temperament_adaptability
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.90790 -0.61440 -0.06297  0.52279  1.72872 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  2.6241026  0.1143446  22.949  &lt; 2e-16 ***
+## scores[, 1] -0.1081673  0.0387804  -2.789  0.00839 ** 
+## scores[, 2]  0.0006309  0.0529490   0.012  0.99056    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.7141 on 36 degrees of freedom
+## Multiple R-squared:  0.1777, Adjusted R-squared:  0.132 
+## F-statistic:  3.89 on 2 and 36 DF,  p-value: 0.02955
+## 
+## 
+## $temperament_reactivity
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.76142 -0.49667  0.08616  0.31599  1.48801 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.8241026  0.1246320  30.683   &lt;2e-16 ***
+## scores[, 1] -0.0872277  0.0422694  -2.064   0.0463 *  
+## scores[, 2] -0.0005437  0.0577128  -0.009   0.9925    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.7783 on 36 degrees of freedom
+## Multiple R-squared:  0.1058, Adjusted R-squared:  0.0561 
+## F-statistic: 2.129 on 2 and 36 DF,  p-value: 0.1337
+## 
+## 
+## $temperament_mind
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.06481 -0.31639 -0.06891  0.29210  1.05462 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.05744    0.08357  36.586  &lt; 2e-16 ***
+## scores[, 1] -0.13614    0.02834  -4.803 2.74e-05 ***
+## scores[, 2] -0.01055    0.03870  -0.273    0.787    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.5219 on 36 degrees of freedom
+## Multiple R-squared:  0.3913, Adjusted R-squared:  0.3575 
+## F-statistic: 11.57 on 2 and 36 DF,  p-value: 0.0001315
+## 
+## 
+## $temperament_substantivity
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -2.00221 -0.15998  0.09606  0.34630  1.04178 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.79718    0.09092  41.764   &lt;2e-16 ***
+## scores[, 1] -0.02003    0.03084  -0.650    0.520    
+## scores[, 2]  0.04103    0.04210   0.975    0.336    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.5678 on 36 degrees of freedom
+## Multiple R-squared:  0.03671,    Adjusted R-squared:  -0.0168 
+## F-statistic: 0.686 on 2 and 36 DF,  p-value: 0.5101
+## 
+## 
+## $temperament_distraction
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.71943 -0.39879 -0.08101  0.29036  1.00173 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.147949   0.077512  40.612   &lt;2e-16 ***
+## scores[, 1] -0.075648   0.026289  -2.878   0.0067 ** 
+## scores[, 2]  0.006415   0.035893   0.179   0.8591    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.4841 on 36 degrees of freedom
+## Multiple R-squared:  0.1876, Adjusted R-squared:  0.1425 
+## F-statistic: 4.156 on 2 and 36 DF,  p-value: 0.02377
+## 
+## 
+## $temperament_threshold
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.4535 -0.7709  0.0475  0.6713  1.6542 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  4.72436    0.14080  33.555   &lt;2e-16 ***
+## scores[, 1] -0.02761    0.04775  -0.578   0.5668    
+## scores[, 2] -0.13326    0.06520  -2.044   0.0483 *  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.8793 on 36 degrees of freedom
+## Multiple R-squared:  0.1114, Adjusted R-squared:  0.06201 
+## F-statistic: 2.256 on 2 and 36 DF,  p-value: 0.1194
+## 
+## 
+## $SEAM_interpersonal
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.6671 -0.5699 -0.2817  0.3369  4.2994 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  5.67568    0.18654  30.425  &lt; 2e-16 ***
+## scores[, 1] -0.12154    0.06327  -1.921  0.06267 .  
+## scores[, 2]  0.27983    0.08638   3.239  0.00258 ** 
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.165 on 36 degrees of freedom
+## Multiple R-squared:  0.2826, Adjusted R-squared:  0.2428 
+## F-statistic: 7.092 on 2 and 36 DF,  p-value: 0.002531
+## 
+## 
+## $SEAM_emotionexpression
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.6383 -0.9074 -0.3709  0.4218  6.3538 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  4.97297    0.25993  19.132   &lt;2e-16 ***
+## scores[, 1] -0.11407    0.08816  -1.294    0.204    
+## scores[, 2]  0.17709    0.12036   1.471    0.150    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.623 on 36 degrees of freedom
+## Multiple R-squared:  0.09636,    Adjusted R-squared:  0.04616 
+## F-statistic:  1.92 on 2 and 36 DF,  p-value: 0.1614
+## 
+## 
+## $SEAM_emotionregulation
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -2.9391 -1.1367  0.0976  0.8259  4.3127 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)   6.1351     0.2968  20.669  &lt; 2e-16 ***
+## scores[, 1]  -0.2856     0.1007  -2.837  0.00744 ** 
+## scores[, 2]   0.1653     0.1375   1.203  0.23695    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.854 on 36 degrees of freedom
+## Multiple R-squared:  0.2087, Adjusted R-squared:  0.1647 
+## F-statistic: 4.746 on 2 and 36 DF,  p-value: 0.01481
+## 
+## 
+## $SEAM_empathy
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.5809 -0.6388 -0.2003  0.6229  2.7758 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.02703    0.16687  18.141  &lt; 2e-16 ***
+## scores[, 1] -0.17239    0.05659  -3.046  0.00432 ** 
+## scores[, 2]  0.09958    0.07727   1.289  0.20573    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.042 on 36 degrees of freedom
+## Multiple R-squared:  0.2331, Adjusted R-squared:  0.1905 
+## F-statistic:  5.47 on 2 and 36 DF,  p-value: 0.008427
+## 
+## 
+## $SEAM_participation
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -2.5919 -1.1866 -0.5118  1.0080  3.5613 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  5.56757    0.26792  20.781  &lt; 2e-16 ***
+## scores[, 1] -0.26573    0.09087  -2.924  0.00594 ** 
+## scores[, 2]  0.26066    0.12407   2.101  0.04271 *  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.673 on 36 degrees of freedom
+## Multiple R-squared:  0.2648, Adjusted R-squared:  0.224 
+## F-statistic: 6.483 on 2 and 36 DF,  p-value: 0.003938
+## 
+## 
+## $SEAM_independence
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -2.2320 -1.2933 -0.4649  0.4436  5.2672 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  5.59459    0.30997  18.049   &lt;2e-16 ***
+## scores[, 1] -0.22318    0.10513  -2.123   0.0407 *  
+## scores[, 2]  0.07889    0.14354   0.550   0.5860    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.936 on 36 degrees of freedom
+## Multiple R-squared:  0.1178, Adjusted R-squared:  0.06883 
+## F-statistic: 2.404 on 2 and 36 DF,  p-value: 0.1047
+## 
+## 
+## $SEAM_selfimage
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.81316 -0.33328 -0.20061  0.05813  2.63839 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.29730    0.10398  31.712   &lt;2e-16 ***
+## scores[, 1] -0.06520    0.03526  -1.849   0.0727 .  
+## scores[, 2]  0.07812    0.04815   1.623   0.1134    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.6493 on 36 degrees of freedom
+## Multiple R-squared:  0.1439, Adjusted R-squared:  0.09634 
+## F-statistic: 3.026 on 2 and 36 DF,  p-value: 0.06102
+## 
+## 
+## $SEAM_attention
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.6895 -1.0923 -0.5155  0.4340  3.8741 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  6.081081   0.257358  23.629   &lt;2e-16 ***
+## scores[, 1] -0.071944   0.087284  -0.824    0.415    
+## scores[, 2]  0.007677   0.119173   0.064    0.949    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.607 on 36 degrees of freedom
+## Multiple R-squared:  0.01863,    Adjusted R-squared:  -0.03589 
+## F-statistic: 0.3418 on 2 and 36 DF,  p-value: 0.7128
+## 
+## 
+## $SEAM_cooperation
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.7415 -1.1689 -0.5948  0.7788  5.1855 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  4.21622    0.26738  15.769   &lt;2e-16 ***
+## scores[, 1] -0.11771    0.09068  -1.298    0.203    
+## scores[, 2]  0.13257    0.12382   1.071    0.291    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.67 on 36 degrees of freedom
+## Multiple R-squared:  0.07291,    Adjusted R-squared:  0.02141 
+## F-statistic: 1.416 on 2 and 36 DF,  p-value: 0.256
+## 
+## 
+## $SEAM_adaptability
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##    Min     1Q Median     3Q    Max 
+## -3.023 -1.511 -0.300  1.424  3.934 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)   9.1081     0.3042  29.938   &lt;2e-16 ***
+## scores[, 1]  -0.3014     0.1032  -2.921   0.0060 ** 
+## scores[, 2]   0.2440     0.1409   1.732   0.0918 .  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.9 on 36 degrees of freedom
+## Multiple R-squared:  0.2426, Adjusted R-squared:  0.2005 
+## F-statistic: 5.765 on 2 and 36 DF,  p-value: 0.00673
+## 
+## 
+## $CBCL1648_hyperactivity
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.75496 -0.04635  0.00116  0.05815  1.23252 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.75000    0.04404  17.028   &lt;2e-16 ***
+## scores[, 1]  0.01460    0.01494   0.977    0.335    
+## scores[, 2]  0.02086    0.02040   1.023    0.313    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.2751 on 36 degrees of freedom
+## Multiple R-squared:  0.05264,    Adjusted R-squared:  9.952e-06 
+## F-statistic:     1 on 2 and 36 DF,  p-value: 0.3778
+## 
+## 
+## $CBCL1648_delayedgratification
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.50479 -0.04798  0.00104  0.02471  1.16821 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.500000   0.036637  13.647 8.46e-16 ***
+## scores[, 1] -0.002786   0.012426  -0.224    0.824    
+## scores[, 2] -0.019392   0.016965  -1.143    0.261    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.2288 on 36 degrees of freedom
+## Multiple R-squared:  0.03632,    Adjusted R-squared:  -0.01722 
+## F-statistic: 0.6784 on 2 and 36 DF,  p-value: 0.5138
+## 
+## 
+## $CBCL1648_shyness
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.53663 -0.08630 -0.00174  0.06883  0.80673 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.60000    0.03276  18.313   &lt;2e-16 ***
+## scores[, 1] -0.02167    0.01111  -1.950   0.0590 .  
+## scores[, 2] -0.03090    0.01517  -2.037   0.0491 *  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.2046 on 36 degrees of freedom
+## Multiple R-squared:  0.1809, Adjusted R-squared:  0.1354 
+## F-statistic: 3.975 on 2 and 36 DF,  p-value: 0.02755
+## 
+## 
+## $CBCL1648_depression
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##       Min        1Q    Median        3Q       Max 
+## -0.216938 -0.029058  0.001763  0.025900  0.259521 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.240000   0.011541  20.795   &lt;2e-16 ***
+## scores[, 1] -0.007472   0.003914  -1.909   0.0643 .  
+## scores[, 2] -0.011875   0.005344  -2.222   0.0327 *  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.07208 on 36 degrees of freedom
+## Multiple R-squared:  0.1925, Adjusted R-squared:  0.1476 
+## F-statistic: 4.291 on 2 and 36 DF,  p-value: 0.02132
+## 
+## 
+## $CBCL1648_aggression
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.20802 -0.02017  0.00076  0.01324  0.31957 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.253333   0.011889  21.308   &lt;2e-16 ***
+## scores[, 1] -0.003366   0.004032  -0.835    0.409    
+## scores[, 2] -0.008201   0.005505  -1.490    0.145    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.07425 on 36 degrees of freedom
+## Multiple R-squared:  0.07492,    Adjusted R-squared:  0.02353 
+## F-statistic: 1.458 on 2 and 36 DF,  p-value: 0.2462
+## 
+## 
+## $CBCL1648_apathy
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.20001 -0.02793 -0.00526  0.02088  0.53440 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.2083333  0.0192153  10.842 6.86e-13 ***
+## scores[, 1] -0.0099445  0.0065169  -1.526    0.136    
+## scores[, 2] -0.0009313  0.0088979  -0.105    0.917    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.12 on 36 degrees of freedom
+## Multiple R-squared:  0.06102,    Adjusted R-squared:  0.008854 
+## F-statistic:  1.17 on 2 and 36 DF,  p-value: 0.322
+## 
+## 
+## $CBCL46_aggression
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.24649 -0.09471 -0.01760  0.07331  0.30327 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.2103125  0.0224434   9.371 3.42e-11 ***
+## scores[, 1] -0.0202271  0.0076118  -2.657   0.0117 *  
+## scores[, 2] -0.0009832  0.0103927  -0.095   0.9252    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.1402 on 36 degrees of freedom
+## Multiple R-squared:  0.1642, Adjusted R-squared:  0.1177 
+## F-statistic: 3.535 on 2 and 36 DF,  p-value: 0.03965
+## 
+## 
+## $CBCL46_depression
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.12367 -0.07685 -0.02526  0.05463  0.33507 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.081563   0.016822   4.849 2.38e-05 ***
+## scores[, 1] -0.009054   0.005705  -1.587    0.121    
+## scores[, 2] -0.003268   0.007789  -0.420    0.677    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.1051 on 36 degrees of freedom
+## Multiple R-squared:  0.06964,    Adjusted R-squared:  0.01796 
+## F-statistic: 1.347 on 2 and 36 DF,  p-value: 0.2727
+## 
+## 
+## $CBCL46_socialavoidance
+## 
+## Call:
+## lm(formula = formula, data = cbcp_bh_sup)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.24139 -0.15399 -0.00289  0.07669  0.64377 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  0.175000   0.033398   5.240  7.2e-06 ***
+## scores[, 1] -0.015418   0.011327  -1.361    0.182    
+## scores[, 2] -0.008579   0.015465  -0.555    0.582    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.2086 on 36 degrees of freedom
+## Multiple R-squared:  0.05662,    Adjusted R-squared:  0.004209 
+## F-statistic:  1.08 on 2 and 36 DF,  p-value: 0.3502</code></pre>
+<p>The results show that PC1 and PC2 significantly predict the following
+outcomes: temperament_adaptability (p = 0.02955), temperament_mind (p =
+0.0001315), temperament_distraction (p = 0.02377), SEAM_interpersonal (p
+= 0.002531), SEAM_emotionregulation (p = 0.01481), SEAM_empathy
+(0.008427), SEAM_participation (p = 0.003938), SEAM_adaptability (P =
+0.00673), CBCL1648_shyness (p = 0.02755), CBCL1648_depression (p =
+0.02132), CBCL46_aggression (p = 0.03965).</p>
+<blockquote>
+<p>This is really interesting!</p>
+</blockquote>
+<pre class="r"><code>cbcp_bh_sup$PC1 &lt;- scores[, 1]
+cbcp_bh_sup$PC2 &lt;- scores[, 2]
+
+ggplot(
+   data = cbcp_bh_sup, mapping = aes(x = PC1, y = temperament_adaptability, color = PC2
+  )) +
+  geom_smooth(method=&#39;lm&#39;)</code></pre>
+<pre><code>## `geom_smooth()` using formula = &#39;y ~ x&#39;</code></pre>
+<pre><code>## Warning: The following aesthetics were dropped during statistical transformation:
+## colour.
+## ℹ This can happen when ggplot fails to infer the correct grouping structure in
+##   the data.
+## ℹ Did you forget to specify a `group` aesthetic or to convert a numerical
+##   variable into a factor?</code></pre>
+<p><img src="p02_files/figure-html/plot-interaction-1.png" width="672" />
+```</p>
 </div>
 
 

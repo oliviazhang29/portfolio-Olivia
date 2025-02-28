@@ -73,3 +73,44 @@ fviz_add(p, quanti.coord, color ="blue", geom="arrow")
 So here is the visualization of the prediction of child social-emotional development from environmental factors. It is hard to read. And frankly, I don't fully understand everything I did here. I'll work on understanding and improving visualization of PCA in my later portfolio pieces. 
 
 Code reference: https://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/118-principal-component-analysis-in-r-prcomp-vs-princomp/#comments-list
+
+## Predict child social-emotional development using PC1 & PC2.
+
+The previous section is not really informative. After talking to Veronica and taking her suggestion of only using PC1 and PC2 to predict the outcome variables, here are the results.
+
+```{r predict-pc1-pc2}
+scores <- res.pca$x
+
+#regression for one DV, too slow
+#lm.12 <- lm(cbcp_bh_sup$temperament_activity ~ scores[, 1] + scores[, 2])
+#summary(lm.12)
+
+#loop
+IV.12 <- "scores[, 1] + scores[, 2]"
+models <- list()
+for (DV in colnames(cbcp_bh_sup)) {
+  formula <- as.formula(paste(DV, "~", IV.12))
+  models[[DV]] <- lm(formula, data = cbcp_bh_sup)
+}
+
+summary_all <- lapply(models, summary)
+summary_all
+```
+
+The results show that PC1 and PC2 significantly predict the following outcomes: temperament_adaptability (p = 0.02955), temperament_mind (p = 0.0001315), temperament_distraction (p = 0.02377), SEAM_interpersonal (p = 0.002531), SEAM_emotionregulation (p = 0.01481), SEAM_empathy (0.008427), SEAM_participation (p = 0.003938), SEAM_adaptability (P = 0.00673), CBCL1648_shyness (p = 0.02755), CBCL1648_depression (p = 0.02132), CBCL46_aggression (p = 0.03965).
+
+> This is really interesting!
+
+
+
+```{r plot-interaction}
+cbcp_bh_sup$PC1 <- scores[, 1]
+cbcp_bh_sup$PC2 <- scores[, 2]
+
+ggplot(
+   data = cbcp_bh_sup, mapping = aes(x = PC1, y = temperament_adaptability, color = PC2
+  )) +
+  geom_smooth(method='lm')
+```
+```
+
