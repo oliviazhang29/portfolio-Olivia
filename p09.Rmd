@@ -2,4 +2,168 @@
 title: "Portfolio 9"
 ---
 
-> The projects should be numbered consecutively (i.e., in the order in which you began them), and should include for each project a description of the goal, the product (computer program, hand graph, computer graph, etc.), the data, and some interpretation. Reports must be reproducible and of high quality in terms of writing, grammar, presentation, etc.
+> This project contintue to analyze my FYP data by examine how the likelihood of a rat’s lever press depends on its previous press. Specifically, it examines the conditional probability of lever pressing behavior: whether drug treatments influence the rats’ tendency to wait longer or respond prematurely following a previous rewarded or premature response.
+
+### 0. Prep.
+
+```{r read-in-data}
+library(tidyverse)
+library(tidymodels)
+library(openintro)
+
+IM_Carray_all_clean <- readRDS("~/Desktop/WFU/25Spring/R/portfolio.pdf/data/fyp/IM_Carray_all_clean.rds")
+```
+
+Carray is a compound variable where each event time in the box is saved with an event code:
+.1 = Right lever press
+.2 = Left Lever press
+.3 = Nosepoke
+.4 = FREE PELLET
+.5 = EARNED PELLET
+The number BEFORE the decimal is a time stamp. The two rightmost numbers are .XY
+For example, 1800 would be 18.00 seconds.
+
+```{r filter}
+# We need to filter out all rows that are not lever presses! 
+IM_Carray_all_clean <- IM_Carray_all_clean %>%
+  filter(Event == 1)
+
+#IM_Carray_all_clean <- IM_Carray_all_clean %>%
+#  filter(!(Event %in% c(2, 4)))
+```
+
+```{r interval}
+#calculate the inter-response time
+IM_Carray_all_clean <- IM_Carray_all_clean %>%
+  group_by(Subject, Day) %>%
+  mutate(Interval = c(0, diff(Time))) %>%
+  ungroup()
+```
+
+## 1. Calculate condition probability of lever press type based on previous press
+
+```{r get-prop}
+# get outcome from Interval
+IM_Carray_all_clean <- IM_Carray_all_clean %>%
+  arrange(Subject, Drug) %>%
+  group_by(Subject) %>%
+  mutate(
+    Outcome = ifelse(Interval >= 20, "Rewarded", "Premature"),
+    PrevOutcome = lag(Outcome)
+  ) %>%
+  ungroup()
+
+# get probabilities
+p_table <- IM_Carray_all_clean %>%
+  filter(!is.na(Outcome) & !is.na(PrevOutcome)) %>%
+  group_by(Drug, PrevOutcome, Outcome) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(Drug, PrevOutcome) %>%
+  mutate(Prob = n / sum(n)) %>%
+  ungroup()
+
+# characterize behaviors
+# premature follow by premature: perseverance 
+# premature follow by rewarded: improvement
+# rewarded follow by premature: regression 
+# rewarded follow by rewarded: maintenance
+p_table$Type <- NA
+p_table$Type <- ifelse((p_table$PrevOutcome == "Premature" & p_table$Outcome == "Premature"), "perseverance", p_table$Type)
+p_table$Type <- ifelse((p_table$PrevOutcome == "Premature" & p_table$Outcome == "Rewarded"), "improvement", p_table$Type)
+p_table$Type <- ifelse((p_table$PrevOutcome == "Rewarded" & p_table$Outcome == "Premature"), "regression", p_table$Type)
+p_table$Type <- ifelse((p_table$PrevOutcome == "Rewarded" & p_table$Outcome == "Rewarded"), "maintenance", p_table$Type)
+```
+
+```{r viz}
+# I'm only visualizing S_HIGH and VEH because they are the two groups that we saw behavioral differences in previous analyses
+p_table %>%
+  filter(Drug %in% c("VEH", "S_HIGH")) %>%
+  ggplot(aes(x = Type, y = Prob, fill = Drug)) +
+  geom_col(position = "dodge")
+```
+
+From the plot, we can see that rats who received S_HIGH displayed more perseverance abd regression behaviors, and less improvement and maintenance behaviors compared to the VEH control group. 
+
+## 1. Permutation test of condition probabilities
+
+### 1.1 Improvement vs. Perseverance 
+
+```{r inference1}
+# previous:premature
+
+# observed prop: VEH - S_HIGH
+0.324 - 0.264
+
+# permutation
+null_dist <- IM_Carray_all_clean %>%
+  filter(!is.na(Outcome) & !is.na(PrevOutcome)) %>%
+  filter(Drug %in% c("VEH", "S_HIGH")) %>%
+  filter(PrevOutcome == "Premature") %>%
+  specify(
+    response = Outcome,
+    explanatory = Drug,
+    success = "Rewarded"
+  ) %>%
+  hypothesize(null = "independence") %>%
+  generate(1000, type = "permute") %>%
+  calculate(
+    stat = "diff in props",
+    order = c("VEH", "S_HIGH")
+  )
+
+# visualize
+null_dist %>%
+  ggplot(aes(x = stat)) +
+  geom_histogram() +
+  geom_vline(xintercept = 0.06, color = "blue")
+
+# get p-value
+null_dist %>%
+  filter(stat >= 0.06) %>%
+  summarize(p_value = n() / nrow(null_dist))
+```
+
+The p-value is 0.003, which means that S_HIGH does reduces rats' probability of displaying improvement behaviors.
+
+### 1.2 Maintenance vs. Regression 
+
+```{r inference2}
+# previous:rewarded
+
+# observed prop: VEH - S_HIGH
+0.481 - 0.365
+
+# permutation
+null_dist <- IM_Carray_all_clean %>%
+  filter(!is.na(Outcome) & !is.na(PrevOutcome)) %>%
+  filter(Drug %in% c("VEH", "S_HIGH")) %>%
+  filter(PrevOutcome == "Rewarded") %>%
+  specify(
+    response = Outcome,
+    explanatory = Drug,
+    success = "Rewarded"
+  ) %>%
+  hypothesize(null = "independence") %>%
+  generate(1000, type = "permute") %>%
+  calculate(
+    stat = "diff in props",
+    order = c("VEH", "S_HIGH")
+  )
+
+# visualize
+null_dist %>%
+  ggplot(aes(x = stat)) +
+  geom_histogram() +
+  geom_vline(xintercept = 0.116, color = "blue")
+
+# get p-value
+null_dist %>%
+  filter(stat >= 0.116) %>%
+  summarize(p_value = n() / nrow(null_dist))
+```
+
+The p-value is .002, which means that S_HIGH does reduces rats' probability of displaying maintenance behaviors.
+
+## 2. Conclusion
+
+Overall, the results show that rats who received high dose of scopolamine displayed more perseverative and regressive behaviors (less improvement and maintenance) compared to rats who received saline as control.

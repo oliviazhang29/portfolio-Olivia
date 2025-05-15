@@ -13,7 +13,7 @@
 
 <title>Portfolio 10</title>
 
-<script src="site_libs/header-attrs-2.13/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
@@ -141,11 +141,15 @@ $(document).ready(function () {
     href = "index.html";
   var menuAnchor = $('a[href="' + href + '"]');
 
-  // mark it active
-  menuAnchor.tab('show');
-
-  // if it's got a parent navbar menu mark it active as well
-  menuAnchor.closest('li.dropdown').addClass('active');
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
 
   // Navbar adjustments
   var navHeight = $(".navbar").first().height() + 15;
@@ -174,8 +178,8 @@ $(document).ready(function () {
   border-radius: 4px;
 }
 
-.tabset-dropdown > .nav-tabs > li.active:before {
-  content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
   font-family: 'Glyphicons Halflings';
   display: inline-block;
   padding: 10px;
@@ -183,16 +187,9 @@ $(document).ready(function () {
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-  content: "&#xe258;";
-  border: none;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-  content: "";
+  content: "\e258";
   font-family: 'Glyphicons Halflings';
-  display: inline-block;
-  padding: 10px;
-  border-right: 1px solid #ddd;
+  border: none;
 }
 
 .tabset-dropdown > .nav-tabs > li.active {
@@ -299,103 +296,274 @@ $(document).ready(function () {
 
 
 <blockquote>
-<p>The projects should be numbered consecutively (i.e., in the order in
-which you began them), and should include for each project a description
-of the goal, the product (computer program, hand graph, computer graph,
-etc.), the data, and some interpretation. Reports must be reproducible
-and of high quality in terms of writing, grammar, presentation, etc.</p>
+<p>This project contintue to analyze my FYP data by examine how the
+likelihood of a rat’s lever press depends on its previous press using
+survival analysis and logistic regression. Specifically, it examines
+whether drug treatments influence the rats’ tendency to wait longer or
+respond prematurely following a previous rewarded or premature
+response.</p>
 </blockquote>
-<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
-hendrerit purus ut dapibus vestibulum. Suspendisse potenti. Cras
-faucibus mauris in leo condimentum lobortis. Cras euismod sollicitudin
-augue, ut venenatis quam placerat eu. Maecenas vulputate rhoncus odio,
-in interdum risus malesuada gravida. Maecenas cursus sed dui sit amet
-lacinia. Nunc dignissim metus nec ex mattis, non rutrum urna cursus.
-Morbi pretium elementum purus, in aliquet libero eleifend ac. Nam
-finibus, ligula sed ultrices pharetra, tellus risus consequat tortor,
-facilisis maximus elit lectus a metus. Sed vel dictum nulla, vitae
-blandit turpis. Integer pulvinar tempor diam ac venenatis. Vestibulum
-est lacus, suscipit et ipsum nec, consectetur iaculis leo. Morbi libero
-lacus, scelerisque non sollicitudin vitae, accumsan sed tellus.
-Suspendisse quis orci tellus.</p>
-<div id="r-markdown" class="section level2">
-<h2>R Markdown</h2>
-<p>This is an R Markdown document. Markdown is a simple formatting
-syntax for authoring HTML, PDF, and MS Word documents. For more details
-on using R Markdown see <a href="http://rmarkdown.rstudio.com"
-class="uri">http://rmarkdown.rstudio.com</a>.</p>
-<p>When you click the <strong>Knit</strong> button a document will be
-generated that includes both content as well as the output of any
-embedded R code chunks within the document. You can embed an R code
-chunk like this:</p>
-<pre class="r"><code>summary(cars)</code></pre>
-<pre><code>##      speed           dist       
-##  Min.   : 4.0   Min.   :  2.00  
-##  1st Qu.:12.0   1st Qu.: 26.00  
-##  Median :15.0   Median : 36.00  
-##  Mean   :15.4   Mean   : 42.98  
-##  3rd Qu.:19.0   3rd Qu.: 56.00  
-##  Max.   :25.0   Max.   :120.00</code></pre>
-<p>Maecenas luctus convallis efficitur. Vestibulum pharetra laoreet nibh
-non congue. Etiam ornare, neque sit amet condimentum aliquet, odio ipsum
-porttitor elit, eu malesuada turpis augue sit amet arcu. Integer nec
-quam et massa congue tincidunt. Donec sit amet diam placerat, pharetra
-quam nec, ornare nisl. Quisque erat turpis, imperdiet eget tellus non,
-interdum ultricies nisi. Fusce a erat est. Nunc sollicitudin ante non
-eros vulputate, sed eleifend nulla hendrerit. Nam ac quam nulla.
-Praesent a ligula a justo auctor tristique ac vel neque. Class aptent
-taciti sociosqu ad litora torquent per conubia nostra, per inceptos
-himenaeos. Quisque tempor felis sed lorem efficitur volutpat. Aliquam
-lectus diam, lacinia vitae velit eget, pulvinar porta massa. Curabitur
-nec egestas mi.</p>
+<div id="prep." class="section level3">
+<h3>0. Prep.</h3>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+## ✔ ggplot2   3.5.2     ✔ tibble    3.2.1
+## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+## ✔ purrr     1.0.4     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>library(survival)
+library(survminer)</code></pre>
+<pre><code>## Loading required package: ggpubr
+## 
+## Attaching package: &#39;survminer&#39;
+## 
+## The following object is masked from &#39;package:survival&#39;:
+## 
+##     myeloma</code></pre>
+<pre class="r"><code>library(lme4)</code></pre>
+<pre><code>## Loading required package: Matrix
+## 
+## Attaching package: &#39;Matrix&#39;
+## 
+## The following objects are masked from &#39;package:tidyr&#39;:
+## 
+##     expand, pack, unpack</code></pre>
+<pre class="r"><code>library(ggeffects)
+
+IM_Carray_all_clean &lt;- readRDS(&quot;~/Desktop/WFU/25Spring/R/portfolio.pdf/data/fyp/IM_Carray_all_clean.rds&quot;)</code></pre>
+<p>Carray is a compound variable where each event time in the box is
+saved with an event code: .1 = Right lever press .2 = Left Lever press
+.3 = Nosepoke .4 = FREE PELLET .5 = EARNED PELLET The number BEFORE the
+decimal is a time stamp. The two rightmost numbers are .XY For example,
+1800 would be 18.00 seconds.</p>
+<pre class="r"><code># We need to filter out all rows that are not lever presses! 
+IM_Carray_all_clean &lt;- IM_Carray_all_clean %&gt;%
+  filter(Event == 1)
+
+#IM_Carray_all_clean &lt;- IM_Carray_all_clean %&gt;%
+#  filter(!(Event %in% c(2, 4)))</code></pre>
+<pre class="r"><code>#calculate the inter-response time
+IM_Carray_all_clean &lt;- IM_Carray_all_clean %&gt;%
+  group_by(Subject, Day) %&gt;%
+  mutate(Interval = c(0, diff(Time))) %&gt;%
+  ungroup()
+
+# get outcome from Interval
+IM_Carray_all_clean &lt;- IM_Carray_all_clean %&gt;%
+  arrange(Subject, Drug) %&gt;%
+  group_by(Subject) %&gt;%
+  mutate(
+    Outcome = ifelse(Interval &gt;= 20, &quot;Rewarded&quot;, &quot;Premature&quot;),
+    PrevOutcome = lag(Outcome)
+  ) %&gt;%
+  ungroup()</code></pre>
 </div>
-<div id="including-plots" class="section level2">
-<h2>Including Plots</h2>
-<p>You can also embed plots, for example:</p>
-<p><img src="p10_files/figure-html/pressure-1.png" width="672" /></p>
-<p>Note that the <code>echo = FALSE</code> parameter was added to the
-code chunk to prevent printing of the R code that generated the
-plot.</p>
-<p>Morbi tincidunt mollis odio sit amet feugiat. Ut vel risus eu ante
-dictum consequat. Integer et luctus mauris. Donec nec faucibus urna, sed
-commodo risus. Nam elementum pulvinar erat, eget convallis est blandit
-vel. Etiam gravida sapien eu massa hendrerit maximus. Proin dolor quam,
-porta vitae libero non, venenatis porta tellus. Vivamus et elit a est
-aliquet consequat. Proin tempus, purus quis suscipit placerat, dui nunc
-euismod dui, sit amet luctus leo lectus in risus. Phasellus consectetur
-eleifend arcu. Nullam venenatis blandit nulla ut ullamcorper. Vestibulum
-eu arcu quis massa scelerisque sodales in ac augue. Quisque dapibus
-fringilla turpis, ut cursus tortor cursus sed. Sed facilisis quam eget
-neque viverra venenatis. Suspendisse ut lorem nec erat elementum
-bibendum. Curabitur lobortis purus in cursus blandit.</p>
-<p>Aliquam sed ex et lorem consequat feugiat at porta leo. Fusce id
-hendrerit tellus. Maecenas dictum felis neque, quis dictum metus
-tristique eu. Vivamus sed blandit nisl. Integer ut urna dolor. Cras in
-egestas eros, in aliquam nisi. Duis vitae elementum quam. Vivamus vel
-turpis commodo, porttitor urna vitae, viverra sem. Nam nec dignissim
-erat, id viverra libero. Integer vel lectus pellentesque tortor
-fringilla posuere. Vivamus quis magna accumsan, porta tortor at, aliquam
-urna. Aliquam vestibulum ante massa, ut gravida lectus sagittis
-vitae.</p>
-<p>Sed eget ipsum auctor, gravida magna sit amet, tincidunt mi. Nulla
-erat ante, volutpat nec sem eget, luctus posuere est. Praesent convallis
-nunc ac turpis bibendum, in maximus magna convallis. Vestibulum ante
-ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae;
-Sed sit amet nulla ante. Sed elit sem, lobortis nec nisi a, rhoncus
-ornare nunc. Curabitur ultrices neque feugiat, facilisis magna eu,
-consectetur magna. Mauris id eleifend ex.</p>
-<p>Morbi tincidunt mollis odio sit amet feugiat. Ut vel risus eu ante
-dictum consequat. Integer et luctus mauris. Donec nec faucibus urna, sed
-commodo risus. Nam elementum pulvinar erat, eget convallis est blandit
-vel. Etiam gravida sapien eu massa hendrerit maximus. Proin dolor quam,
-porta vitae libero non, venenatis porta tellus. Vivamus et elit a est
-aliquet consequat. Proin tempus, purus quis suscipit placerat, dui nunc
-euismod dui, sit amet luctus leo lectus in risus. Phasellus consectetur
-eleifend arcu. Nullam venenatis blandit nulla ut ullamcorper. Vestibulum
-eu arcu quis massa scelerisque sodales in ac augue. Quisque dapibus
-fringilla turpis, ut cursus tortor cursus sed. Sed facilisis quam eget
-neque viverra venenatis. Suspendisse ut lorem nec erat elementum
-bibendum. Curabitur lobortis purus in cursus blandit.</p>
+<div id="survival-analysis" class="section level2">
+<h2>1. Survival analysis</h2>
+</div>
+<div id="survival-models" class="section level2">
+<h2>1.1 Survival models</h2>
+<pre class="r"><code># Remove the first press for each rat (no previous press to measure survival time from)
+surv_data &lt;- IM_Carray_all_clean %&gt;%
+  filter(!is.na(Interval) &amp; !is.na(PrevOutcome)) %&gt;%
+  filter(Drug %in% c(&quot;VEH&quot;, &quot;S_HIGH&quot;))
+
+# Create a Surv object: Interval as survival time, all &quot;events&quot; are press (so status = 1)
+surv_obj &lt;- Surv(time = surv_data$Interval, event = rep(1, nrow(surv_data)))
+
+# Fit a Cox model using previous outcome as predictor
+cox_model_simple &lt;- coxph(surv_obj ~ PrevOutcome, data = surv_data)
+summary(cox_model_simple)</code></pre>
+<pre><code>## Call:
+## coxph(formula = surv_obj ~ PrevOutcome, data = surv_data)
+## 
+##   n= 3277, number of events= 3277 
+## 
+##                         coef exp(coef) se(coef)      z Pr(&gt;|z|)    
+## PrevOutcomeRewarded -0.33032   0.71869  0.03685 -8.964   &lt;2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##                     exp(coef) exp(-coef) lower .95 upper .95
+## PrevOutcomeRewarded    0.7187      1.391    0.6686    0.7725
+## 
+## Concordance= 0.546  (se = 0.005 )
+## Likelihood ratio test= 82.64  on 1 df,   p=&lt;2e-16
+## Wald test            = 80.36  on 1 df,   p=&lt;2e-16
+## Score (logrank) test = 81.06  on 1 df,   p=&lt;2e-16</code></pre>
+<pre class="r"><code>cox_model_interact &lt;- coxph(surv_obj ~ PrevOutcome * Drug, data = surv_data)
+summary(cox_model_interact)</code></pre>
+<pre><code>## Call:
+## coxph(formula = surv_obj ~ PrevOutcome * Drug, data = surv_data)
+## 
+##   n= 3277, number of events= 3277 
+## 
+##                                 coef exp(coef) se(coef)      z Pr(&gt;|z|)    
+## PrevOutcomeRewarded         -0.39919   0.67086  0.06453 -6.186 6.17e-10 ***
+## DrugVEH                     -0.07058   0.93185  0.04515 -1.563    0.118    
+## PrevOutcomeRewarded:DrugVEH  0.10753   1.11352  0.07850  1.370    0.171    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+##                             exp(coef) exp(-coef) lower .95 upper .95
+## PrevOutcomeRewarded            0.6709     1.4906    0.5912    0.7613
+## DrugVEH                        0.9318     1.0731    0.8529    1.0181
+## PrevOutcomeRewarded:DrugVEH    1.1135     0.8981    0.9547    1.2987
+## 
+## Concordance= 0.562  (se = 0.006 )
+## Likelihood ratio test= 85.45  on 3 df,   p=&lt;2e-16
+## Wald test            = 83.44  on 3 df,   p=&lt;2e-16
+## Score (logrank) test = 84.22  on 3 df,   p=&lt;2e-16</code></pre>
+<pre class="r"><code># Compare models
+anova(cox_model_simple, cox_model_interact)</code></pre>
+<pre><code>## Analysis of Deviance Table
+##  Cox model: response is  surv_obj
+##  Model 1: ~ PrevOutcome
+##  Model 2: ~ PrevOutcome * Drug
+##   loglik  Chisq Df Pr(&gt;|Chi|)
+## 1 -23213                     
+## 2 -23212 2.8076  2     0.2457</code></pre>
+<p>Both the main effect of Drug and the comparison of models are not
+significant, indicating that although the hazard ratio decreased
+followed by a rewarded response, the effect does not differ by drugs.
+Interestingly, this is not consistent with the condition probability
+results I got in portfolio piece 9. I’m not sure if it’s because of the
+model used or that here we using a continuous DV and in PP9 we analyzed
+a categorical DV.</p>
+</div>
+<div id="plot-the-survival-models" class="section level2">
+<h2>1.2 Plot the survival models</h2>
+<pre class="r"><code>ggsurvplot(survfit(surv_obj ~ PrevOutcome, data = surv_data),
+           pval = TRUE, conf.int = TRUE, xlim = c(0, 60),   
+           ggtheme = theme_minimal())</code></pre>
+<p><img src="p10_files/figure-html/vis-1.png" width="672" /></p>
+<pre class="r"><code>ggsurvplot(survfit(surv_obj ~ interaction(PrevOutcome, Drug), data = surv_data),
+           pval = TRUE,  
+           xlim = c(0, 60),   
+           legend.title = &quot;Condition&quot;,
+           legend.labs = c(&quot;Premature-S_HIGH&quot;, &quot;Rewarded-S_HIGH&quot;, &quot;Premature-VEH&quot;, &quot;Rewarded-VEH&quot;),
+           ggtheme = theme_minimal())</code></pre>
+<p><img src="p10_files/figure-html/vis-2.png" width="672" /></p>
+<p>These plots clearly show that when rats were rewarded in the previous
+response, they are more likely to wait longer for the next response.</p>
+</div>
+<div id="logistic-regression" class="section level2">
+<h2>2. Logistic Regression</h2>
+<div id="model" class="section level3">
+<h3>2.1. Model</h3>
+<pre class="r"><code># Binary code the outcome: 1 = Rewarded, 0 = Premature
+glm_data &lt;- IM_Carray_all_clean %&gt;%
+  mutate(
+    Rewarded = ifelse(Outcome == &quot;Rewarded&quot;, 1, 0),
+    PrevRewarded = ifelse(PrevOutcome == &quot;Rewarded&quot;, 1,
+                          ifelse(PrevOutcome == &quot;Premature&quot;, 0, NA))
+  ) %&gt;%
+  filter(Drug %in% c(&quot;VEH&quot;, &quot;S_HIGH&quot;))
+
+# random intercept model with PrevRewarded as a predictor
+glmm_model &lt;- glmer(Rewarded ~ PrevRewarded + (1 | Subject), data = glm_data, family = &quot;binomial&quot;)
+summary(glmm_model)</code></pre>
+<pre><code>## Generalized linear mixed model fit by maximum likelihood (Laplace
+##   Approximation) [glmerMod]
+##  Family: binomial  ( logit )
+## Formula: Rewarded ~ PrevRewarded + (1 | Subject)
+##    Data: glm_data
+## 
+##      AIC      BIC   logLik deviance df.resid 
+##   4096.8   4115.0  -2045.4   4090.8     3274 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -1.3849 -0.7345 -0.5829  1.0531  1.8306 
+## 
+## Random effects:
+##  Groups  Name        Variance Std.Dev.
+##  Subject (Intercept) 0.1796   0.4237  
+## Number of obs: 3277, groups:  Subject, 11
+## 
+## Fixed effects:
+##              Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  -0.72891    0.13703  -5.319 1.04e-07 ***
+## PrevRewarded  0.46243    0.07898   5.855 4.77e-09 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Correlation of Fixed Effects:
+##             (Intr)
+## PrevRewardd -0.228</code></pre>
+<pre class="r"><code># random slope model with PrevRewarded &amp; Drug as predictors
+glmm_model &lt;- glmer(
+  Rewarded ~ PrevRewarded * Drug + (Drug | Subject),
+  data = glm_data,
+  family = binomial
+)
+summary(glmm_model)</code></pre>
+<pre><code>## Generalized linear mixed model fit by maximum likelihood (Laplace
+##   Approximation) [glmerMod]
+##  Family: binomial  ( logit )
+## Formula: Rewarded ~ PrevRewarded * Drug + (Drug | Subject)
+##    Data: glm_data
+## 
+##      AIC      BIC   logLik deviance df.resid 
+##   4053.9   4096.6  -2020.0   4039.9     3270 
+## 
+## Scaled residuals: 
+##     Min      1Q  Median      3Q     Max 
+## -1.7624 -0.7050 -0.5514  1.0469  2.2763 
+## 
+## Random effects:
+##  Groups  Name        Variance Std.Dev. Corr 
+##  Subject (Intercept) 0.1944   0.4409        
+##          DrugVEH     0.2917   0.5401   -0.36
+## Number of obs: 3277, groups:  Subject, 11
+## 
+## Fixed effects:
+##                      Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)           -0.8785     0.1612  -5.451 5.02e-08 ***
+## PrevRewarded           0.2707     0.1436   1.886   0.0593 .  
+## DrugVEH                0.3010     0.1970   1.528   0.1266    
+## PrevRewarded:DrugVEH   0.1393     0.1738   0.801   0.4230    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Correlation of Fixed Effects:
+##             (Intr) PrvRwr DrgVEH
+## PrevRewardd -0.309              
+## DrugVEH     -0.504  0.253       
+## PrvRwr:DVEH  0.255 -0.826 -0.327</code></pre>
+<p>From the random slope model predicting rats’ lever press success from
+the previous lever press, we can see that previous lever press has a
+marginally significant effect on rats’ next lever presses, but drug
+doesn’t significantly influence this effect.</p>
+</div>
+<div id="plot" class="section level3">
+<h3>2.2. Plot</h3>
+<pre class="r"><code>pred &lt;- ggpredict(glmm_model, terms = c(&quot;PrevRewarded&quot;, &quot;Drug&quot;))</code></pre>
+<pre><code>## You are calculating adjusted predictions on the population-level (i.e.
+##   `type = &quot;fixed&quot;`) for a *generalized* linear mixed model.
+##   This may produce biased estimates due to Jensen&#39;s inequality. Consider
+##   setting `bias_correction = TRUE` to correct for this bias.
+##   See also the documentation of the `bias_correction` argument.</code></pre>
+<pre class="r"><code>plot(pred) +
+  labs(
+    title = &quot;Predicted Probability of Rewarded Response&quot;,
+    x = &quot;Previous Response Rewarded (0 = No, 1 = Yes)&quot;,
+    y = &quot;Predicted Probability&quot;,
+    color = &quot;Drug&quot;
+  ) +
+  theme_minimal()</code></pre>
+<p><img src="p10_files/figure-html/glm_vis-1.png" width="672" /></p>
+</div>
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<p>Finally, it’s interesting to see how different models/methods provide
+converging/different results.</p>
 </div>
 
 

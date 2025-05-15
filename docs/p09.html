@@ -13,7 +13,7 @@
 
 <title>Portfolio 9</title>
 
-<script src="site_libs/header-attrs-2.13/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
@@ -141,11 +141,15 @@ $(document).ready(function () {
     href = "index.html";
   var menuAnchor = $('a[href="' + href + '"]');
 
-  // mark it active
-  menuAnchor.tab('show');
-
-  // if it's got a parent navbar menu mark it active as well
-  menuAnchor.closest('li.dropdown').addClass('active');
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
 
   // Navbar adjustments
   var navHeight = $(".navbar").first().height() + 15;
@@ -174,8 +178,8 @@ $(document).ready(function () {
   border-radius: 4px;
 }
 
-.tabset-dropdown > .nav-tabs > li.active:before {
-  content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
   font-family: 'Glyphicons Halflings';
   display: inline-block;
   padding: 10px;
@@ -183,16 +187,9 @@ $(document).ready(function () {
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-  content: "&#xe258;";
-  border: none;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-  content: "";
+  content: "\e258";
   font-family: 'Glyphicons Halflings';
-  display: inline-block;
-  padding: 10px;
-  border-right: 1px solid #ddd;
+  border: none;
 }
 
 .tabset-dropdown > .nav-tabs > li.active {
@@ -299,12 +296,208 @@ $(document).ready(function () {
 
 
 <blockquote>
-<p>The projects should be numbered consecutively (i.e., in the order in
-which you began them), and should include for each project a description
-of the goal, the product (computer program, hand graph, computer graph,
-etc.), the data, and some interpretation. Reports must be reproducible
-and of high quality in terms of writing, grammar, presentation, etc.</p>
+<p>This project contintue to analyze my FYP data by examine how the
+likelihood of a rat’s lever press depends on its previous press.
+Specifically, it examines the conditional probability of lever pressing
+behavior: whether drug treatments influence the rats’ tendency to wait
+longer or respond prematurely following a previous rewarded or premature
+response.</p>
 </blockquote>
+<div id="prep." class="section level3">
+<h3>0. Prep.</h3>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+## ✔ ggplot2   3.5.2     ✔ tibble    3.2.1
+## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+## ✔ purrr     1.0.4     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>library(tidymodels)</code></pre>
+<pre><code>## ── Attaching packages ────────────────────────────────────── tidymodels 1.3.0 ──
+## ✔ broom        1.0.8     ✔ rsample      1.3.0
+## ✔ dials        1.4.0     ✔ tune         1.3.0
+## ✔ infer        1.0.8     ✔ workflows    1.2.0
+## ✔ modeldata    1.4.0     ✔ workflowsets 1.1.0
+## ✔ parsnip      1.3.1     ✔ yardstick    1.3.2
+## ✔ recipes      1.3.0     
+## ── Conflicts ───────────────────────────────────────── tidymodels_conflicts() ──
+## ✖ scales::discard() masks purrr::discard()
+## ✖ dplyr::filter()   masks stats::filter()
+## ✖ recipes::fixed()  masks stringr::fixed()
+## ✖ dplyr::lag()      masks stats::lag()
+## ✖ yardstick::spec() masks readr::spec()
+## ✖ recipes::step()   masks stats::step()</code></pre>
+<pre class="r"><code>library(openintro)</code></pre>
+<pre><code>## Loading required package: airports
+## Loading required package: cherryblossom
+## Loading required package: usdata
+## 
+## Attaching package: &#39;openintro&#39;
+## 
+## The following object is masked from &#39;package:modeldata&#39;:
+## 
+##     ames</code></pre>
+<pre class="r"><code>IM_Carray_all_clean &lt;- readRDS(&quot;~/Desktop/WFU/25Spring/R/portfolio.pdf/data/fyp/IM_Carray_all_clean.rds&quot;)</code></pre>
+<p>Carray is a compound variable where each event time in the box is
+saved with an event code: .1 = Right lever press .2 = Left Lever press
+.3 = Nosepoke .4 = FREE PELLET .5 = EARNED PELLET The number BEFORE the
+decimal is a time stamp. The two rightmost numbers are .XY For example,
+1800 would be 18.00 seconds.</p>
+<pre class="r"><code># We need to filter out all rows that are not lever presses! 
+IM_Carray_all_clean &lt;- IM_Carray_all_clean %&gt;%
+  filter(Event == 1)
+
+#IM_Carray_all_clean &lt;- IM_Carray_all_clean %&gt;%
+#  filter(!(Event %in% c(2, 4)))</code></pre>
+<pre class="r"><code>#calculate the inter-response time
+IM_Carray_all_clean &lt;- IM_Carray_all_clean %&gt;%
+  group_by(Subject, Day) %&gt;%
+  mutate(Interval = c(0, diff(Time))) %&gt;%
+  ungroup()</code></pre>
+</div>
+<div
+id="calculate-condition-probability-of-lever-press-type-based-on-previous-press"
+class="section level2">
+<h2>1. Calculate condition probability of lever press type based on
+previous press</h2>
+<pre class="r"><code># get outcome from Interval
+IM_Carray_all_clean &lt;- IM_Carray_all_clean %&gt;%
+  arrange(Subject, Drug) %&gt;%
+  group_by(Subject) %&gt;%
+  mutate(
+    Outcome = ifelse(Interval &gt;= 20, &quot;Rewarded&quot;, &quot;Premature&quot;),
+    PrevOutcome = lag(Outcome)
+  ) %&gt;%
+  ungroup()
+
+# get probabilities
+p_table &lt;- IM_Carray_all_clean %&gt;%
+  filter(!is.na(Outcome) &amp; !is.na(PrevOutcome)) %&gt;%
+  group_by(Drug, PrevOutcome, Outcome) %&gt;%
+  summarise(n = n(), .groups = &quot;drop&quot;) %&gt;%
+  group_by(Drug, PrevOutcome) %&gt;%
+  mutate(Prob = n / sum(n)) %&gt;%
+  ungroup()
+
+# characterize behaviors
+# premature follow by premature: perseverance 
+# premature follow by rewarded: improvement
+# rewarded follow by premature: regression 
+# rewarded follow by rewarded: maintenance
+p_table$Type &lt;- NA
+p_table$Type &lt;- ifelse((p_table$PrevOutcome == &quot;Premature&quot; &amp; p_table$Outcome == &quot;Premature&quot;), &quot;perseverance&quot;, p_table$Type)
+p_table$Type &lt;- ifelse((p_table$PrevOutcome == &quot;Premature&quot; &amp; p_table$Outcome == &quot;Rewarded&quot;), &quot;improvement&quot;, p_table$Type)
+p_table$Type &lt;- ifelse((p_table$PrevOutcome == &quot;Rewarded&quot; &amp; p_table$Outcome == &quot;Premature&quot;), &quot;regression&quot;, p_table$Type)
+p_table$Type &lt;- ifelse((p_table$PrevOutcome == &quot;Rewarded&quot; &amp; p_table$Outcome == &quot;Rewarded&quot;), &quot;maintenance&quot;, p_table$Type)</code></pre>
+<pre class="r"><code># I&#39;m only visualizing S_HIGH and VEH because they are the two groups that we saw behavioral differences in previous analyses
+p_table %&gt;%
+  filter(Drug %in% c(&quot;VEH&quot;, &quot;S_HIGH&quot;)) %&gt;%
+  ggplot(aes(x = Type, y = Prob, fill = Drug)) +
+  geom_col(position = &quot;dodge&quot;)</code></pre>
+<p><img src="p09_files/figure-html/viz-1.png" width="672" /></p>
+<p>From the plot, we can see that rats who received S_HIGH displayed
+more perseverance abd regression behaviors, and less improvement and
+maintenance behaviors compared to the VEH control group.</p>
+</div>
+<div id="permutation-test-of-condition-probabilities"
+class="section level2">
+<h2>1. Permutation test of condition probabilities</h2>
+<div id="improvement-vs.-perseverance" class="section level3">
+<h3>1.1 Improvement vs. Perseverance</h3>
+<pre class="r"><code># previous:premature
+
+# observed prop: VEH - S_HIGH
+0.324 - 0.264</code></pre>
+<pre><code>## [1] 0.06</code></pre>
+<pre class="r"><code># permutation
+null_dist &lt;- IM_Carray_all_clean %&gt;%
+  filter(!is.na(Outcome) &amp; !is.na(PrevOutcome)) %&gt;%
+  filter(Drug %in% c(&quot;VEH&quot;, &quot;S_HIGH&quot;)) %&gt;%
+  filter(PrevOutcome == &quot;Premature&quot;) %&gt;%
+  specify(
+    response = Outcome,
+    explanatory = Drug,
+    success = &quot;Rewarded&quot;
+  ) %&gt;%
+  hypothesize(null = &quot;independence&quot;) %&gt;%
+  generate(1000, type = &quot;permute&quot;) %&gt;%
+  calculate(
+    stat = &quot;diff in props&quot;,
+    order = c(&quot;VEH&quot;, &quot;S_HIGH&quot;)
+  )
+
+# visualize
+null_dist %&gt;%
+  ggplot(aes(x = stat)) +
+  geom_histogram() +
+  geom_vline(xintercept = 0.06, color = &quot;blue&quot;)</code></pre>
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="p09_files/figure-html/inference1-1.png" width="672" /></p>
+<pre class="r"><code># get p-value
+null_dist %&gt;%
+  filter(stat &gt;= 0.06) %&gt;%
+  summarize(p_value = n() / nrow(null_dist))</code></pre>
+<pre><code>## # A tibble: 1 × 1
+##   p_value
+##     &lt;dbl&gt;
+## 1   0.001</code></pre>
+<p>The p-value is 0.003, which means that S_HIGH does reduces rats’
+probability of displaying improvement behaviors.</p>
+</div>
+<div id="maintenance-vs.-regression" class="section level3">
+<h3>1.2 Maintenance vs. Regression</h3>
+<pre class="r"><code># previous:rewarded
+
+# observed prop: VEH - S_HIGH
+0.481 - 0.365</code></pre>
+<pre><code>## [1] 0.116</code></pre>
+<pre class="r"><code># permutation
+null_dist &lt;- IM_Carray_all_clean %&gt;%
+  filter(!is.na(Outcome) &amp; !is.na(PrevOutcome)) %&gt;%
+  filter(Drug %in% c(&quot;VEH&quot;, &quot;S_HIGH&quot;)) %&gt;%
+  filter(PrevOutcome == &quot;Rewarded&quot;) %&gt;%
+  specify(
+    response = Outcome,
+    explanatory = Drug,
+    success = &quot;Rewarded&quot;
+  ) %&gt;%
+  hypothesize(null = &quot;independence&quot;) %&gt;%
+  generate(1000, type = &quot;permute&quot;) %&gt;%
+  calculate(
+    stat = &quot;diff in props&quot;,
+    order = c(&quot;VEH&quot;, &quot;S_HIGH&quot;)
+  )
+
+# visualize
+null_dist %&gt;%
+  ggplot(aes(x = stat)) +
+  geom_histogram() +
+  geom_vline(xintercept = 0.116, color = &quot;blue&quot;)</code></pre>
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="p09_files/figure-html/inference2-1.png" width="672" /></p>
+<pre class="r"><code># get p-value
+null_dist %&gt;%
+  filter(stat &gt;= 0.116) %&gt;%
+  summarize(p_value = n() / nrow(null_dist))</code></pre>
+<pre><code>## # A tibble: 1 × 1
+##   p_value
+##     &lt;dbl&gt;
+## 1       0</code></pre>
+<p>The p-value is .002, which means that S_HIGH does reduces rats’
+probability of displaying maintenance behaviors.</p>
+</div>
+</div>
+<div id="conclusion" class="section level2">
+<h2>2. Conclusion</h2>
+<p>Overall, the results show that rats who received high dose of
+scopolamine displayed more perseverative and regressive behaviors (less
+improvement and maintenance) compared to rats who received saline as
+control.</p>
+</div>
 
 
 

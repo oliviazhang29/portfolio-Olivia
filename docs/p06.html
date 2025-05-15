@@ -317,9 +317,9 @@ library(tidyverse)</code></pre>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
 ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
 ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
-## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+## ✔ ggplot2   3.5.2     ✔ tibble    3.2.1
 ## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
-## ✔ purrr     1.0.2     
+## ✔ purrr     1.0.4     
 ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()
@@ -349,16 +349,38 @@ library(emmeans)</code></pre>
 <pre><code>## Welcome to emmeans.
 ## Caution: You lose important information if you filter this package&#39;s results.
 ## See &#39;? untidy&#39;</code></pre>
+<pre class="r"><code>library(ggpattern)
+library(afex)</code></pre>
+<pre><code>## ************
+## Welcome to afex. For support visit: http://afex.singmann.science/
+## - Functions for ANOVAs: aov_car(), aov_ez(), and aov_4()
+## - Methods for calculating p-values with mixed(): &#39;S&#39;, &#39;KR&#39;, &#39;LRT&#39;, and &#39;PB&#39;
+## - &#39;afex_aov&#39; and &#39;mixed&#39; objects can be passed to emmeans() for follow-up tests
+## - Get and set global package options with: afex_options()
+## - Set sum-to-zero contrasts globally: set_sum_contrasts()
+## - For example analyses see: browseVignettes(&quot;afex&quot;)
+## ************
+## 
+## Attaching package: &#39;afex&#39;
+## 
+## The following object is masked from &#39;package:lme4&#39;:
+## 
+##     lmer</code></pre>
 <pre class="r"><code>IM_DD1_2day &lt;- read_excel(&quot;data/fyp/1dayafterinjection/IM-3-21-Basic.xlsx&quot;)
 IM_DD2_2day &lt;- read_excel(&quot;data/fyp/1dayafterinjection/IM-3-24-Basic.xlsx&quot;)
 IM_DD3_2day &lt;- read_excel(&quot;data/fyp/1dayafterinjection/IM-3-27-Basic.xlsx&quot;)
 IM_DD4_2day &lt;- read_excel(&quot;data/fyp/1dayafterinjection/IM-4-02-Basic.xlsx&quot;)
-IM_DD5_2day &lt;- read_excel(&quot;data/fyp/1dayafterinjection/IM-4-06-Basic.xlsx&quot;)</code></pre>
+IM_DD5_2day &lt;- read_excel(&quot;data/fyp/1dayafterinjection/IM-4-06-Basic.xlsx&quot;)
+IM_all_clean &lt;- read_rds(&quot;data/fyp/IM_all_clean.rds&quot;)</code></pre>
 <pre class="r"><code>IM_all_2day &lt;- bind_rows(IM_DD1_2day, IM_DD2_2day, IM_DD3_2day, IM_DD4_2day, IM_DD5_2day)
-IM_all_2day$Efficiency &lt;- IM_all_2day$ReinforcersEarned / IM_all_2day$RightLeverPress * 100</code></pre>
+IM_all_2day$Efficiency &lt;- IM_all_2day$ReinforcersEarned / IM_all_2day$RightLeverPress * 100
+IM_all_2day &lt;- IM_all_2day %&gt;%
+  filter(Subject != &quot;IM10&quot;)</code></pre>
 </div>
 <div id="analysis-visualization" class="section level3">
-<h3>Analysis &amp; Visualization</h3>
+<h3>1. Analysis &amp; Visualization</h3>
+<div id="look-at-the-data." class="section level4">
+<h4>1.1 Look at the data.</h4>
 <pre class="r"><code>IM_all_2day$Group &lt;- factor(IM_all_2day$Group, levels = c(&quot;M_HIGH&quot;, &quot;M_LOW&quot;, &quot;VEH&quot;, &quot;S_LOW&quot;, &quot;S_HIGH&quot;))
 
 #Lever press plot
@@ -384,7 +406,698 @@ IM_all_2day %&gt;%
   geom_point(aes(color = Subject)) +  
   stat_summary(fun = mean, geom = &quot;line&quot;, group = 1, color = &quot;black&quot;) +  
   stat_summary(fun = mean, geom = &quot;point&quot;, color = &quot;black&quot;)  </code></pre>
-<p><img src="p06_files/figure-html/vis-3.png" width="672" /></p>
+<p><img src="p06_files/figure-html/vis-3.png" width="672" /> This is
+fucking beautiful. This is exactly we predicted!</p>
+</div>
+<div id="now-some-anovas." class="section level4">
+<h4>1.2 Now some ANOVAs.</h4>
+<p>Right Lever Press:</p>
+<pre class="r"><code>RLP_results &lt;- ezANOVA(
+  data = IM_all_2day,
+  dv = .(RightLeverPress),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)</code></pre>
+<pre><code>## Warning: Converting &quot;Subject&quot; to factor for ANOVA.</code></pre>
+<pre class="r"><code>RLP_results #sig</code></pre>
+<pre><code>## $ANOVA
+##   Effect DFn DFd        F          p p&lt;.05       ges
+## 2  Group   4  40 2.906739 0.03344763     * 0.1205511
+## 
+## $`Mauchly&#39;s Test for Sphericity`
+##   Effect          W           p p&lt;.05
+## 2  Group 0.06531366 0.007226675     *
+## 
+## $`Sphericity Corrections`
+##   Effect      GGe     p[GG] p[GG]&lt;.05       HFe      p[HF] p[HF]&lt;.05
+## 2  Group 0.456609 0.0840079           0.5533325 0.07111271</code></pre>
+<pre class="r"><code>#post hoc
+pairwise.t.test(IM_all_2day$RightLeverPress, IM_all_2day$Group, paired = TRUE, p.adjust.method = &quot;bonferroni&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using paired t tests 
+## 
+## data:  IM_all_2day$RightLeverPress and IM_all_2day$Group 
+## 
+##        M_HIGH M_LOW VEH  S_LOW
+## M_LOW  1.00   -     -    -    
+## VEH    1.00   1.00  -    -    
+## S_LOW  1.00   1.00  1.00 -    
+## S_HIGH 1.00   0.49  0.74 1.00 
+## 
+## P value adjustment method: bonferroni</code></pre>
+<pre class="r"><code>#S_HIGH pressed significantly less levers than all other groups</code></pre>
+<p>Reinforcers Earned:</p>
+<pre class="r"><code>RLP_results &lt;- ezANOVA(
+  data = IM_all_2day,
+  dv = .(ReinforcersEarned),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)</code></pre>
+<pre><code>## Warning: Converting &quot;Subject&quot; to factor for ANOVA.</code></pre>
+<pre class="r"><code>RLP_results #sig</code></pre>
+<pre><code>## $ANOVA
+##   Effect DFn DFd        F          p p&lt;.05       ges
+## 2  Group   4  40 2.921714 0.03278747     * 0.1044043
+## 
+## $`Mauchly&#39;s Test for Sphericity`
+##   Effect         W         p p&lt;.05
+## 2  Group 0.2706662 0.2846514      
+## 
+## $`Sphericity Corrections`
+##   Effect       GGe      p[GG] p[GG]&lt;.05       HFe     p[HF] p[HF]&lt;.05
+## 2  Group 0.6441265 0.06000946           0.8871014 0.0396343         *</code></pre>
+<pre class="r"><code>#post hoc
+pairwise.t.test(IM_all_2day$ReinforcersEarned, IM_all_2day$Group, paired = TRUE, p.adjust.method = &quot;bonferroni&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using paired t tests 
+## 
+## data:  IM_all_2day$ReinforcersEarned and IM_all_2day$Group 
+## 
+##        M_HIGH M_LOW VEH S_LOW
+## M_LOW  1.0    -     -   -    
+## VEH    1.0    1.0   -   -    
+## S_LOW  1.0    1.0   1.0 -    
+## S_HIGH 1.0    0.2   1.0 1.0  
+## 
+## P value adjustment method: bonferroni</code></pre>
+<pre class="r"><code>#S_HIGH pressed significantly less levers than all other groups</code></pre>
+<p>Efficiency:</p>
+<pre class="r"><code>RLP_results &lt;- ezANOVA(
+  data = IM_all_2day,
+  dv = .(Efficiency),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)</code></pre>
+<pre><code>## Warning: Converting &quot;Subject&quot; to factor for ANOVA.</code></pre>
+<pre class="r"><code>RLP_results #sig</code></pre>
+<pre><code>## $ANOVA
+##   Effect DFn DFd        F          p p&lt;.05       ges
+## 2  Group   4  40 2.939339 0.03202751     * 0.0974786
+## 
+## $`Mauchly&#39;s Test for Sphericity`
+##   Effect         W         p p&lt;.05
+## 2  Group 0.2032377 0.1520978      
+## 
+## $`Sphericity Corrections`
+##   Effect      GGe      p[GG] p[GG]&lt;.05       HFe      p[HF] p[HF]&lt;.05
+## 2  Group 0.634762 0.05999877           0.8688412 0.04002953         *</code></pre>
+<pre class="r"><code>#post hoc
+pairwise.t.test(IM_all_2day$Efficiency, IM_all_2day$Group, paired = TRUE, p.adjust.method = &quot;bonferroni&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using paired t tests 
+## 
+## data:  IM_all_2day$Efficiency and IM_all_2day$Group 
+## 
+##        M_HIGH M_LOW VEH  S_LOW
+## M_LOW  1.00   -     -    -    
+## VEH    1.00   1.00  -    -    
+## S_LOW  1.00   1.00  1.00 -    
+## S_HIGH 1.00   0.23  1.00 1.00 
+## 
+## P value adjustment method: bonferroni</code></pre>
+<pre class="r"><code>#S_HIGH pressed significantly less levers than all other groups</code></pre>
+<p>They are all significant! So injecting scopolamine does affect rats’
+impulsivity, but the effect is delayed till the second day!</p>
+</div>
+<div id="now-more-bar-plots." class="section level4">
+<h4>1.3 Now more bar plots.</h4>
+<p>Right Lever Press:</p>
+<pre class="r"><code># total level press
+# Calculate standard error
+means &lt;- IM_all_2day %&gt;%
+  group_by(Group) %&gt;%
+  summarize(
+    MeanScore = mean(RightLeverPress),
+    SE = sd(RightLeverPress) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = &quot;identity&quot;, width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = &quot;darkgrey&quot;) +
+  labs(title = &quot;Total Lever Presses 2nd Day&quot;, x = NULL, y = NULL) +
+  scale_fill_manual(values = c(&quot;M_HIGH&quot; = &quot;#397DB0&quot;, &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, &quot;VEH&quot; = &quot;#fbf0d9&quot;, &quot;S_LOW&quot; = &quot;#9ED17B&quot;, &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;)) +
+  scale_x_discrete(labels = c(&quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, &quot;VEH&quot; = &quot;Vehicle&quot;, &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;)) +
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;, axis.text.x = element_text(size = 11, face = &quot;bold&quot;), axis.text.y = element_text(size = 15, face = &quot;bold&quot;),  plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;))</code></pre>
+<p><img src="p06_files/figure-html/bar-plot-lever-press3-1.png" width="672" /></p>
+<p>Reinforcers Earned:</p>
+<pre class="r"><code># total level press
+# Calculate standard error
+means &lt;- IM_all_2day %&gt;%
+  group_by(Group) %&gt;%
+  summarize(
+    MeanScore = mean(ReinforcersEarned),
+    SE = sd(ReinforcersEarned) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = &quot;identity&quot;, width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = &quot;darkgrey&quot;) +
+  labs(title = &quot;Reinforcers Earned 2nd Day&quot;, x = NULL, y = NULL) +
+  scale_fill_manual(values = c(&quot;M_HIGH&quot; = &quot;#397DB0&quot;, &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, &quot;VEH&quot; = &quot;#fbf0d9&quot;, &quot;S_LOW&quot; = &quot;#9ED17B&quot;, &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;)) +
+  scale_x_discrete(labels = c(&quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, &quot;VEH&quot; = &quot;Vehicle&quot;, &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;)) +
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;, axis.text.x = element_text(size = 11, face = &quot;bold&quot;), axis.text.y = element_text(size = 15, face = &quot;bold&quot;),  plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;))</code></pre>
+<p><img src="p06_files/figure-html/bar-plot-reinforcers-earned-1.png" width="672" /></p>
+<p>Efficiency:</p>
+<pre class="r"><code># total level press
+# Calculate standard error
+means &lt;- IM_all_2day %&gt;%
+  group_by(Group) %&gt;%
+  summarize(
+    MeanScore = mean(Efficiency),
+    SE = sd(Efficiency) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = &quot;identity&quot;, width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = &quot;darkgrey&quot;) +
+  labs(title = &quot;Efficiency 2nd Day&quot;, x = NULL, y = NULL) +
+  scale_fill_manual(values = c(&quot;M_HIGH&quot; = &quot;#397DB0&quot;, &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, &quot;VEH&quot; = &quot;#fbf0d9&quot;, &quot;S_LOW&quot; = &quot;#9ED17B&quot;, &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;)) +
+  scale_x_discrete(labels = c(&quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, &quot;VEH&quot; = &quot;Vehicle&quot;, &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;)) +
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;, axis.text.x = element_text(size = 11, face = &quot;bold&quot;), axis.text.y = element_text(size = 15, face = &quot;bold&quot;),  plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;))</code></pre>
+<p><img src="p06_files/figure-html/bar-plot-efficiency2-1.png" width="672" /></p>
+</div>
+</div>
+<div id="combine-data-for-two-days." class="section level3">
+<h3>2. Combine data for two days.</h3>
+<p>Since we see a different effect of drug condition for the injection
+day and one day post-injection. It would be helpful to combine data for
+both days and visualize them.</p>
+<p>First we combine datasets for two days.</p>
+<pre class="r"><code>IM_all_clean$DayAfterInjection &lt;- 0
+IM_all_2day$DayAfterInjection &lt;- 1
+IM_all_grand &lt;- bind_rows(IM_all_clean, IM_all_2day)
+IM_all_grand$DayAfterInjection &lt;- as.factor(IM_all_grand$DayAfterInjection)</code></pre>
+<p>Then we need to map out the bar plots, shading dataset from the day
+after the injection. Total lever presses:</p>
+<pre class="r"><code># total level press
+# Calculate standard error
+means &lt;- IM_all_grand %&gt;%
+  group_by(Group, DayAfterInjection) %&gt;%
+  summarize(
+    MeanScore = mean(RightLeverPress),
+    SE = sd(RightLeverPress) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Create the bar plot with shading
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group, pattern = DayAfterInjection)) +
+  geom_bar_pattern(
+    stat = &quot;identity&quot;, 
+    position = position_dodge(),  # Adjust position for dodging
+    width = 0.7,
+    pattern_fill = &quot;black&quot;,
+    pattern_density = 0.05, 
+    pattern_spacing = 0.05, 
+    pattern_angle = 45,
+    color = &quot;black&quot;  # Add black borders to the bars
+  ) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), 
+                width = 0.15, color = &quot;darkgrey&quot;, position = position_dodge(width = 0.7)) +
+  labs(title = &quot;Total Lever Presses&quot;, x = NULL, y = NULL, pattern = NULL) +
+  scale_fill_manual(values = c(
+    &quot;M_HIGH&quot; = &quot;#397DB0&quot;, 
+    &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, 
+    &quot;VEH&quot; = &quot;#fbf0d9&quot;, 
+    &quot;S_LOW&quot; = &quot;#9ED17B&quot;, 
+    &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;
+  )) +
+  scale_x_discrete(labels = c(
+    &quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, 
+    &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, 
+    &quot;VEH&quot; = &quot;Vehicle&quot;, 
+    &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, 
+    &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;
+  )) +
+  scale_pattern_manual(values = c(&quot;0&quot; = &quot;none&quot;, &quot;1&quot; = &quot;stripe&quot;), 
+                       labels = c(&quot;0&quot; = &quot;Day of Injection&quot;, &quot;1&quot; = &quot;Day After Injection&quot;)) + # Add labels to explain patterns
+  theme_minimal() +
+  theme(
+    legend.position = &quot;none&quot;,
+    axis.text.x = element_text(size = 11, face = &quot;bold&quot;), 
+    axis.text.y = element_text(size = 15, face = &quot;bold&quot;),  
+    plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;)
+  ) </code></pre>
+<p><img src="p06_files/figure-html/bar-plot-lever-press2-1.png" width="672" /></p>
+<p>Total reinforcers earned:</p>
+<pre class="r"><code># total level press
+# Calculate standard error
+means &lt;- IM_all_grand %&gt;%
+  group_by(Group, DayAfterInjection) %&gt;%
+  summarize(
+    MeanScore = mean(ReinforcersEarned),
+    SE = sd(ReinforcersEarned) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Create the bar plot with shading
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group, pattern = DayAfterInjection)) +
+  geom_bar_pattern(
+    stat = &quot;identity&quot;, 
+    position = position_dodge(),  # Adjust position for dodging
+    width = 0.7,
+    pattern_fill = &quot;black&quot;,
+    pattern_density = 0.05, 
+    pattern_spacing = 0.05, 
+    pattern_angle = 45,
+    color = &quot;black&quot;  # Add black borders to the bars
+  ) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), 
+                width = 0.15, color = &quot;darkgrey&quot;, position = position_dodge(width = 0.7)) +
+  labs(title = &quot;Reinforcers Earned&quot;, x = NULL, y = NULL, pattern = NULL) +
+  scale_fill_manual(values = c(
+    &quot;M_HIGH&quot; = &quot;#397DB0&quot;, 
+    &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, 
+    &quot;VEH&quot; = &quot;#fbf0d9&quot;, 
+    &quot;S_LOW&quot; = &quot;#9ED17B&quot;, 
+    &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;
+  )) +
+  scale_x_discrete(labels = c(
+    &quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, 
+    &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, 
+    &quot;VEH&quot; = &quot;Vehicle&quot;, 
+    &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, 
+    &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;
+  )) +
+  scale_pattern_manual(values = c(&quot;0&quot; = &quot;none&quot;, &quot;1&quot; = &quot;stripe&quot;), 
+                       labels = c(&quot;0&quot; = &quot;Day of Injection&quot;, &quot;1&quot; = &quot;Day After Injection&quot;)) + # Add labels to explain patterns
+  theme_minimal() +
+  theme(
+    legend.position = &quot;none&quot;,
+    axis.text.x = element_text(size = 11, face = &quot;bold&quot;), 
+    axis.text.y = element_text(size = 15, face = &quot;bold&quot;),  
+    plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;)
+  ) </code></pre>
+<p><img src="p06_files/figure-html/bar-plot-reinforcers-earned2-1.png" width="672" /></p>
+<p>Efficiency:</p>
+<pre class="r"><code># Efficiency
+# Calculate standard error
+means &lt;- IM_all_grand %&gt;%
+  group_by(Group, DayAfterInjection) %&gt;%
+  summarize(
+    MeanScore = mean(Efficiency),
+    SE = sd(Efficiency) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Create the bar plot with shading
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group, pattern = DayAfterInjection)) +
+  geom_bar_pattern(
+    stat = &quot;identity&quot;, 
+    position = position_dodge(),  # Adjust position for dodging
+    width = 0.7,
+    pattern_fill = &quot;black&quot;,
+    pattern_density = 0.05, 
+    pattern_spacing = 0.05, 
+    pattern_angle = 45,
+    color = &quot;black&quot;  # Add black borders to the bars
+  ) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), 
+                width = 0.15, color = &quot;darkgrey&quot;, position = position_dodge(width = 0.7)) +
+  labs(title = &quot;Efficiency&quot;, x = NULL, y = NULL, pattern = NULL) +
+  scale_fill_manual(values = c(
+    &quot;M_HIGH&quot; = &quot;#397DB0&quot;, 
+    &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, 
+    &quot;VEH&quot; = &quot;#fbf0d9&quot;, 
+    &quot;S_LOW&quot; = &quot;#9ED17B&quot;, 
+    &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;
+  )) +
+  scale_x_discrete(labels = c(
+    &quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, 
+    &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, 
+    &quot;VEH&quot; = &quot;Vehicle&quot;, 
+    &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, 
+    &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;
+  )) +
+  scale_pattern_manual(values = c(&quot;0&quot; = &quot;none&quot;, &quot;1&quot; = &quot;stripe&quot;), 
+                       labels = c(&quot;0&quot; = &quot;Day of Injection&quot;, &quot;1&quot; = &quot;Day After Injection&quot;)) + # Add labels to explain patterns
+  theme_minimal() +
+  theme(
+    legend.position = &quot;none&quot;,
+    axis.text.x = element_text(size = 11, face = &quot;bold&quot;), 
+    axis.text.y = element_text(size = 15, face = &quot;bold&quot;),  
+    plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;)
+  ) </code></pre>
+<p><img src="p06_files/figure-html/bar-plot-efficiency-1.png" width="672" /></p>
+<pre class="r"><code>#long to wide
+IM_all_2day_wide &lt;- IM_all_2day %&gt;%
+  select(Subject, Group, Efficiency, ReinforcersEarned, RightLeverPress, LeftLeverPress, NosePokes) %&gt;%
+  pivot_wider(
+    names_from = Group,  # Columns to create
+    values_from = c(Efficiency, ReinforcersEarned, RightLeverPress, LeftLeverPress, NosePokes)     # Values to fill
+  )
+
+write_sav(IM_all_2day_wide, &quot;data/fyp/IM_all_2day_wide.sav&quot;)</code></pre>
+<div id="run-a-5-drug-2-day-repeated-measures-anova"
+class="section level4">
+<h4>2.1 Run a 5 (drug) * 2 (day) repeated measures ANOVA</h4>
+<pre class="r"><code># Run the ANOVA
+############################### lever press ############################################
+result &lt;- aov_ez(
+  id = &quot;Subject&quot;,                # The subject identifier
+  dv = &quot;RightLeverPress&quot;,                     # Dependent variable
+  data = IM_all_grand,              # Data frame containing your data
+  within = c(&quot;Group&quot;, &quot;DayAfterInjection&quot;),     # Within-subject factors
+  type = 3                       # Type III sums of squares (default)
+)
+
+# Display the ANOVA results
+print(result)</code></pre>
+<pre><code>## Anova Table (Type 3 tests)
+## 
+## Response: RightLeverPress
+##                    Effect          df     MSE         F  ges p.value
+## 1                   Group 2.35, 23.51 2729.45    2.72 + .070    .079
+## 2       DayAfterInjection       1, 10 3632.94 21.31 *** .249   &lt;.001
+## 3 Group:DayAfterInjection 2.51, 25.07 2003.18 11.83 *** .203   &lt;.001
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;+&#39; 0.1 &#39; &#39; 1
+## 
+## Sphericity correction method: GG</code></pre>
+<pre class="r"><code># Post hoc comparisons
+posthoc &lt;- emmeans(result, pairwise ~ Group * DayAfterInjection, adjust = &quot;bonferroni&quot;)
+
+# Display post hoc results
+summary(posthoc)</code></pre>
+<pre><code>## $emmeans
+##  Group  DayAfterInjection emmean    SE df lower.CL upper.CL
+##  M_HIGH X0                   184 17.20 10      146      223
+##  M_LOW  X0                   189 11.50 10      164      215
+##  VEH    X0                   191  9.07 10      171      211
+##  S_LOW  X0                   197 15.10 10      163      231
+##  S_HIGH X0                   107 19.40 10       64      150
+##  M_HIGH X1                   221 12.40 10      193      249
+##  M_LOW  X1                   214 14.80 10      181      247
+##  VEH    X1                   207 11.20 10      182      232
+##  S_LOW  X1                   241 13.50 10      210      271
+##  S_HIGH X1                   251 17.90 10      211      291
+## 
+## Confidence level used: 0.95 
+## 
+## $contrasts
+##  contrast              estimate    SE df t.ratio p.value
+##  M_HIGH X0 - M_LOW X0     -4.91 14.40 10  -0.340  1.0000
+##  M_HIGH X0 - VEH X0       -6.27 13.60 10  -0.460  1.0000
+##  M_HIGH X0 - S_LOW X0    -12.45 19.10 10  -0.652  1.0000
+##  M_HIGH X0 - S_HIGH X0    77.27 14.50 10   5.344  0.0147
+##  M_HIGH X0 - M_HIGH X1   -36.45 20.10 10  -1.815  1.0000
+##  M_HIGH X0 - M_LOW X1    -29.91 18.90 10  -1.580  1.0000
+##  M_HIGH X0 - VEH X1      -22.36 18.50 10  -1.207  1.0000
+##  M_HIGH X0 - S_LOW X1    -56.09 16.50 10  -3.398  0.3058
+##  M_HIGH X0 - S_HIGH X1   -66.82 24.40 10  -2.744  0.9318
+##  M_LOW X0 - VEH X0        -1.36  7.00 10  -0.195  1.0000
+##  M_LOW X0 - S_LOW X0      -7.55 19.20 10  -0.393  1.0000
+##  M_LOW X0 - S_HIGH X0     82.18 20.40 10   4.032  0.1077
+##  M_LOW X0 - M_HIGH X1    -31.55  9.42 10  -3.348  0.3327
+##  M_LOW X0 - M_LOW X1     -25.00  8.63 10  -2.896  0.7171
+##  M_LOW X0 - VEH X1       -17.45  8.26 10  -2.113  1.0000
+##  M_LOW X0 - S_LOW X1     -51.18  9.08 10  -5.634  0.0098
+##  M_LOW X0 - S_HIGH X1    -61.91 20.60 10  -3.011  0.5888
+##  VEH X0 - S_LOW X0        -6.18 15.00 10  -0.412  1.0000
+##  VEH X0 - S_HIGH X0       83.55 18.30 10   4.560  0.0469
+##  VEH X0 - M_HIGH X1      -30.18  9.51 10  -3.173  0.4468
+##  VEH X0 - M_LOW X1       -23.64 10.10 10  -2.343  1.0000
+##  VEH X0 - VEH X1         -16.09  9.31 10  -1.729  1.0000
+##  VEH X0 - S_LOW X1       -49.82  8.09 10  -6.155  0.0048
+##  VEH X0 - S_HIGH X1      -60.55 18.70 10  -3.234  0.4029
+##  S_LOW X0 - S_HIGH X0     89.73 21.70 10   4.141  0.0904
+##  S_LOW X0 - M_HIGH X1    -24.00 21.90 10  -1.097  1.0000
+##  S_LOW X0 - M_LOW X1     -17.45 20.40 10  -0.856  1.0000
+##  S_LOW X0 - VEH X1        -9.91 16.40 10  -0.604  1.0000
+##  S_LOW X0 - S_LOW X1     -43.64 16.70 10  -2.606  1.0000
+##  S_LOW X0 - S_HIGH X1    -54.36 25.40 10  -2.142  1.0000
+##  S_HIGH X0 - M_HIGH X1  -113.73 26.10 10  -4.355  0.0644
+##  S_HIGH X0 - M_LOW X1   -107.18 24.10 10  -4.443  0.0562
+##  S_HIGH X0 - VEH X1      -99.64 22.60 10  -4.415  0.0587
+##  S_HIGH X0 - S_LOW X1   -133.36 22.60 10  -5.898  0.0068
+##  S_HIGH X0 - S_HIGH X1  -144.09 27.00 10  -5.338  0.0148
+##  M_HIGH X1 - M_LOW X1      6.55 11.20 10   0.583  1.0000
+##  M_HIGH X1 - VEH X1       14.09 10.80 10   1.308  1.0000
+##  M_HIGH X1 - S_LOW X1    -19.64 10.90 10  -1.809  1.0000
+##  M_HIGH X1 - S_HIGH X1   -30.36 17.60 10  -1.720  1.0000
+##  M_LOW X1 - VEH X1         7.55 11.40 10   0.660  1.0000
+##  M_LOW X1 - S_LOW X1     -26.18  5.70 10  -4.596  0.0444
+##  M_LOW X1 - S_HIGH X1    -36.91 22.70 10  -1.624  1.0000
+##  VEH X1 - S_LOW X1       -33.73 10.00 10  -3.356  0.3281
+##  VEH X1 - S_HIGH X1      -44.45 22.30 10  -1.993  1.0000
+##  S_LOW X1 - S_HIGH X1    -10.73 20.40 10  -0.525  1.0000
+## 
+## P value adjustment: bonferroni method for 45 tests</code></pre>
+<pre class="r"><code># Simple effects for Drug at each Day
+emmeans(result, ~ Group | DayAfterInjection)</code></pre>
+<pre><code>## DayAfterInjection = X0:
+##  Group  emmean    SE df lower.CL upper.CL
+##  M_HIGH    184 17.20 10      146      223
+##  M_LOW     189 11.50 10      164      215
+##  VEH       191  9.07 10      171      211
+##  S_LOW     197 15.10 10      163      231
+##  S_HIGH    107 19.40 10       64      150
+## 
+## DayAfterInjection = X1:
+##  Group  emmean    SE df lower.CL upper.CL
+##  M_HIGH    221 12.40 10      193      249
+##  M_LOW     214 14.80 10      181      247
+##  VEH       207 11.20 10      182      232
+##  S_LOW     241 13.50 10      210      271
+##  S_HIGH    251 17.90 10      211      291
+## 
+## Confidence level used: 0.95</code></pre>
+<pre class="r"><code>############################### reinforcers earned ###################
+result &lt;- aov_ez(
+  id = &quot;Subject&quot;,                # The subject identifier
+  dv = &quot;ReinforcersEarned&quot;,                     # Dependent variable
+  data = IM_all_grand,              # Data frame containing your data
+  within = c(&quot;Group&quot;, &quot;DayAfterInjection&quot;),     # Within-subject factors
+  type = 3                       # Type III sums of squares (default)
+)
+
+# Display the ANOVA results
+print(result)</code></pre>
+<pre><code>## Anova Table (Type 3 tests)
+## 
+## Response: ReinforcersEarned
+##                    Effect          df    MSE         F  ges p.value
+## 1                   Group 2.78, 27.85 392.70 10.33 *** .278   &lt;.001
+## 2       DayAfterInjection       1, 10 110.48      0.46 .002    .512
+## 3 Group:DayAfterInjection 2.88, 28.84 135.17  9.60 *** .113   &lt;.001
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;+&#39; 0.1 &#39; &#39; 1
+## 
+## Sphericity correction method: GG</code></pre>
+<pre class="r"><code># Post hoc comparisons
+posthoc &lt;- emmeans(result, pairwise ~ Group * DayAfterInjection, adjust = &quot;bonferroni&quot;)
+
+# Display post hoc results
+summary(posthoc)</code></pre>
+<pre><code>## $emmeans
+##  Group  DayAfterInjection emmean   SE df lower.CL upper.CL
+##  M_HIGH X0                  70.5 4.80 10     59.8     81.2
+##  M_LOW  X0                  70.3 4.31 10     60.7     79.9
+##  VEH    X0                  73.3 4.48 10     63.3     83.3
+##  S_LOW  X0                  59.3 6.35 10     45.1     73.4
+##  S_HIGH X0                  31.5 4.80 10     20.8     42.2
+##  M_HIGH X1                  64.8 5.48 10     52.6     77.0
+##  M_LOW  X1                  68.8 4.95 10     57.8     79.8
+##  VEH    X1                  67.0 5.43 10     54.9     79.1
+##  S_LOW  X1                  55.0 5.33 10     43.1     66.9
+##  S_HIGH X1                  55.9 5.40 10     43.9     67.9
+## 
+## Confidence level used: 0.95 
+## 
+## $contrasts
+##  contrast              estimate   SE df t.ratio p.value
+##  M_HIGH X0 - M_LOW X0     0.182 5.30 10   0.034  1.0000
+##  M_HIGH X0 - VEH X0      -2.818 3.37 10  -0.837  1.0000
+##  M_HIGH X0 - S_LOW X0    11.182 7.16 10   1.561  1.0000
+##  M_HIGH X0 - S_HIGH X0   39.000 6.10 10   6.390  0.0036
+##  M_HIGH X0 - M_HIGH X1    5.636 3.65 10   1.543  1.0000
+##  M_HIGH X0 - M_LOW X1     1.636 4.85 10   0.338  1.0000
+##  M_HIGH X0 - VEH X1       3.455 5.70 10   0.606  1.0000
+##  M_HIGH X0 - S_LOW X1    15.455 4.68 10   3.301  0.3598
+##  M_HIGH X0 - S_HIGH X1   14.545 6.25 10   2.329  1.0000
+##  M_LOW X0 - VEH X0       -3.000 5.31 10  -0.565  1.0000
+##  M_LOW X0 - S_LOW X0     11.000 7.76 10   1.418  1.0000
+##  M_LOW X0 - S_HIGH X0    38.818 5.65 10   6.872  0.0020
+##  M_LOW X0 - M_HIGH X1     5.455 4.08 10   1.337  1.0000
+##  M_LOW X0 - M_LOW X1      1.455 4.24 10   0.343  1.0000
+##  M_LOW X0 - VEH X1        3.273 5.28 10   0.620  1.0000
+##  M_LOW X0 - S_LOW X1     15.273 5.44 10   2.805  0.8380
+##  M_LOW X0 - S_HIGH X1    14.364 7.13 10   2.014  1.0000
+##  VEH X0 - S_LOW X0       14.000 5.73 10   2.445  1.0000
+##  VEH X0 - S_HIGH X0      41.818 6.72 10   6.220  0.0044
+##  VEH X0 - M_HIGH X1       8.455 4.21 10   2.009  1.0000
+##  VEH X0 - M_LOW X1        4.455 4.33 10   1.030  1.0000
+##  VEH X0 - VEH X1          6.273 3.77 10   1.665  1.0000
+##  VEH X0 - S_LOW X1       18.273 2.65 10   6.906  0.0019
+##  VEH X0 - S_HIGH X1      17.364 6.89 10   2.521  1.0000
+##  S_LOW X0 - S_HIGH X0    27.818 8.10 10   3.434  0.2879
+##  S_LOW X0 - M_HIGH X1    -5.545 7.63 10  -0.727  1.0000
+##  S_LOW X0 - M_LOW X1     -9.545 6.55 10  -1.458  1.0000
+##  S_LOW X0 - VEH X1       -7.727 5.92 10  -1.305  1.0000
+##  S_LOW X0 - S_LOW X1      4.273 4.93 10   0.867  1.0000
+##  S_LOW X0 - S_HIGH X1     3.364 7.67 10   0.438  1.0000
+##  S_HIGH X0 - M_HIGH X1  -33.364 5.60 10  -5.962  0.0063
+##  S_HIGH X0 - M_LOW X1   -37.364 5.92 10  -6.312  0.0039
+##  S_HIGH X0 - VEH X1     -35.545 7.00 10  -5.080  0.0215
+##  S_HIGH X0 - S_LOW X1   -23.545 6.38 10  -3.692  0.1872
+##  S_HIGH X0 - S_HIGH X1  -24.455 4.60 10  -5.322  0.0152
+##  M_HIGH X1 - M_LOW X1    -4.000 3.84 10  -1.040  1.0000
+##  M_HIGH X1 - VEH X1      -2.182 4.84 10  -0.451  1.0000
+##  M_HIGH X1 - S_LOW X1     9.818 4.18 10   2.347  1.0000
+##  M_HIGH X1 - S_HIGH X1    8.909 6.29 10   1.416  1.0000
+##  M_LOW X1 - VEH X1        1.818 5.37 10   0.339  1.0000
+##  M_LOW X1 - S_LOW X1     13.818 3.44 10   4.017  0.1103
+##  M_LOW X1 - S_HIGH X1    12.909 6.16 10   2.096  1.0000
+##  VEH X1 - S_LOW X1       12.000 3.49 10   3.436  0.2870
+##  VEH X1 - S_HIGH X1      11.091 7.39 10   1.502  1.0000
+##  S_LOW X1 - S_HIGH X1    -0.909 6.47 10  -0.141  1.0000
+## 
+## P value adjustment: bonferroni method for 45 tests</code></pre>
+<pre class="r"><code># Simple effects for Drug at each Day
+emmeans(result, ~ Group | DayAfterInjection)</code></pre>
+<pre><code>## DayAfterInjection = X0:
+##  Group  emmean   SE df lower.CL upper.CL
+##  M_HIGH   70.5 4.80 10     59.8     81.2
+##  M_LOW    70.3 4.31 10     60.7     79.9
+##  VEH      73.3 4.48 10     63.3     83.3
+##  S_LOW    59.3 6.35 10     45.1     73.4
+##  S_HIGH   31.5 4.80 10     20.8     42.2
+## 
+## DayAfterInjection = X1:
+##  Group  emmean   SE df lower.CL upper.CL
+##  M_HIGH   64.8 5.48 10     52.6     77.0
+##  M_LOW    68.8 4.95 10     57.8     79.8
+##  VEH      67.0 5.43 10     54.9     79.1
+##  S_LOW    55.0 5.33 10     43.1     66.9
+##  S_HIGH   55.9 5.40 10     43.9     67.9
+## 
+## Confidence level used: 0.95</code></pre>
+<pre class="r"><code>############################### efficiency ###################
+result &lt;- aov_ez(
+  id = &quot;Subject&quot;,                # The subject identifier
+  dv = &quot;Efficiency&quot;,                     # Dependent variable
+  data = IM_all_grand,              # Data frame containing your data
+  within = c(&quot;Group&quot;, &quot;DayAfterInjection&quot;),     # Within-subject factors
+  type = 3                       # Type III sums of squares (default)
+)
+
+# Display the ANOVA results
+print(result)</code></pre>
+<pre><code>## Anova Table (Type 3 tests)
+## 
+## Response: Efficiency
+##                    Effect          df    MSE        F  ges p.value
+## 1                   Group 2.85, 28.53 225.05   2.63 + .071    .072
+## 2       DayAfterInjection       1, 10 104.28 14.95 ** .066    .003
+## 3 Group:DayAfterInjection 2.80, 28.04 110.60     0.45 .006    .706
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;+&#39; 0.1 &#39; &#39; 1
+## 
+## Sphericity correction method: GG</code></pre>
+<pre class="r"><code># Post hoc comparisons
+posthoc &lt;- emmeans(result, pairwise ~ Group * DayAfterInjection, adjust = &quot;bonferroni&quot;)
+
+# Display post hoc results
+summary(posthoc)</code></pre>
+<pre><code>## $emmeans
+##  Group  DayAfterInjection emmean   SE df lower.CL upper.CL
+##  M_HIGH X0                  42.0 4.93 10     31.0     53.0
+##  M_LOW  X0                  39.4 4.21 10     30.0     48.8
+##  VEH    X0                  40.5 4.69 10     30.1     51.0
+##  S_LOW  X0                  34.3 5.62 10     21.7     46.8
+##  S_HIGH X0                  32.7 3.37 10     25.2     40.2
+##  M_HIGH X1                  31.5 4.14 10     22.3     40.7
+##  M_LOW  X1                  35.2 4.75 10     24.6     45.8
+##  VEH    X1                  34.6 4.25 10     25.1     44.0
+##  S_LOW  X1                  24.9 4.06 10     15.9     34.0
+##  S_HIGH X1                  25.0 4.33 10     15.4     34.7
+## 
+## Confidence level used: 0.95 
+## 
+## $contrasts
+##  contrast              estimate   SE df t.ratio p.value
+##  M_HIGH X0 - M_LOW X0     2.571 3.93 10   0.653  1.0000
+##  M_HIGH X0 - VEH X0       1.421 3.20 10   0.444  1.0000
+##  M_HIGH X0 - S_LOW X0     7.710 5.94 10   1.298  1.0000
+##  M_HIGH X0 - S_HIGH X0    9.261 4.41 10   2.102  1.0000
+##  M_HIGH X0 - M_HIGH X1   10.455 3.81 10   2.745  0.9295
+##  M_HIGH X0 - M_LOW X1     6.752 3.85 10   1.754  1.0000
+##  M_HIGH X0 - VEH X1       7.418 5.27 10   1.407  1.0000
+##  M_HIGH X0 - S_LOW X1    17.053 3.77 10   4.526  0.0494
+##  M_HIGH X0 - S_HIGH X1   16.928 5.16 10   3.282  0.3718
+##  M_LOW X0 - VEH X0       -1.150 4.47 10  -0.257  1.0000
+##  M_LOW X0 - S_LOW X0      5.139 6.92 10   0.743  1.0000
+##  M_LOW X0 - S_HIGH X0     6.690 4.94 10   1.353  1.0000
+##  M_LOW X0 - M_HIGH X1     7.885 3.30 10   2.390  1.0000
+##  M_LOW X0 - M_LOW X1      4.182 3.87 10   1.081  1.0000
+##  M_LOW X0 - VEH X1        4.847 3.71 10   1.306  1.0000
+##  M_LOW X0 - S_LOW X1     14.482 4.13 10   3.503  0.2565
+##  M_LOW X0 - S_HIGH X1    14.357 5.57 10   2.578  1.0000
+##  VEH X0 - S_LOW X0        6.289 4.98 10   1.262  1.0000
+##  VEH X0 - S_HIGH X0       7.840 4.44 10   1.766  1.0000
+##  VEH X0 - M_HIGH X1       9.034 3.14 10   2.873  0.7466
+##  VEH X0 - M_LOW X1        5.331 2.99 10   1.785  1.0000
+##  VEH X0 - VEH X1          5.997 4.03 10   1.490  1.0000
+##  VEH X0 - S_LOW X1       15.632 1.72 10   9.103  0.0002
+##  VEH X0 - S_HIGH X1      15.507 4.94 10   3.137  0.4751
+##  S_LOW X0 - S_HIGH X0     1.551 6.69 10   0.232  1.0000
+##  S_LOW X0 - M_HIGH X1     2.745 6.52 10   0.421  1.0000
+##  S_LOW X0 - M_LOW X1     -0.957 5.56 10  -0.172  1.0000
+##  S_LOW X0 - VEH X1       -0.292 5.79 10  -0.050  1.0000
+##  S_LOW X0 - S_LOW X1      9.343 4.29 10   2.177  1.0000
+##  S_LOW X0 - S_HIGH X1     9.218 6.51 10   1.416  1.0000
+##  S_HIGH X0 - M_HIGH X1    1.195 4.67 10   0.256  1.0000
+##  S_HIGH X0 - M_LOW X1    -2.508 5.04 10  -0.498  1.0000
+##  S_HIGH X0 - VEH X1      -1.843 5.74 10  -0.321  1.0000
+##  S_HIGH X0 - S_LOW X1     7.792 4.52 10   1.723  1.0000
+##  S_HIGH X0 - S_HIGH X1    7.667 3.35 10   2.286  1.0000
+##  M_HIGH X1 - M_LOW X1    -3.703 3.51 10  -1.056  1.0000
+##  M_HIGH X1 - VEH X1      -3.038 3.61 10  -0.841  1.0000
+##  M_HIGH X1 - S_LOW X1     6.597 2.89 10   2.282  1.0000
+##  M_HIGH X1 - S_HIGH X1    6.472 4.45 10   1.455  1.0000
+##  M_LOW X1 - VEH X1        0.665 4.73 10   0.141  1.0000
+##  M_LOW X1 - S_LOW X1     10.300 2.15 10   4.790  0.0331
+##  M_LOW X1 - S_HIGH X1    10.175 4.81 10   2.117  1.0000
+##  VEH X1 - S_LOW X1        9.635 3.61 10   2.668  1.0000
+##  VEH X1 - S_HIGH X1       9.510 6.01 10   1.582  1.0000
+##  S_LOW X1 - S_HIGH X1    -0.125 4.24 10  -0.030  1.0000
+## 
+## P value adjustment: bonferroni method for 45 tests</code></pre>
+<pre class="r"><code># Simple effects for Drug at each Day
+emmeans(result, ~ Group | DayAfterInjection)</code></pre>
+<pre><code>## DayAfterInjection = X0:
+##  Group  emmean   SE df lower.CL upper.CL
+##  M_HIGH   42.0 4.93 10     31.0     53.0
+##  M_LOW    39.4 4.21 10     30.0     48.8
+##  VEH      40.5 4.69 10     30.1     51.0
+##  S_LOW    34.3 5.62 10     21.7     46.8
+##  S_HIGH   32.7 3.37 10     25.2     40.2
+## 
+## DayAfterInjection = X1:
+##  Group  emmean   SE df lower.CL upper.CL
+##  M_HIGH   31.5 4.14 10     22.3     40.7
+##  M_LOW    35.2 4.75 10     24.6     45.8
+##  VEH      34.6 4.25 10     25.1     44.0
+##  S_LOW    24.9 4.06 10     15.9     34.0
+##  S_HIGH   25.0 4.33 10     15.4     34.7
+## 
+## Confidence level used: 0.95</code></pre>
+</div>
+</div>
+<div id="conclusion" class="section level3">
+<h3>Conclusion</h3>
+<p>The plots show an interesting trend – scopolamine potentially
+decreases rats’ efficiency in the DRL-20 task the next day after
+injection, which means that the effect of blocking Ach muscarinic
+receptors on rats’ impulsivity maybe delayed!</p>
 </div>
 
 

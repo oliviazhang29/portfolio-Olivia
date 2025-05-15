@@ -308,9 +308,9 @@ pallets?</p>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
 ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
 ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
-## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+## ✔ ggplot2   3.5.2     ✔ tibble    3.2.1
 ## ✔ lubridate 1.9.4     ✔ tidyr     1.3.1
-## ✔ purrr     1.0.2     
+## ✔ purrr     1.0.4     
 ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()
@@ -384,9 +384,11 @@ IM_Carray_all_clean %&gt;%
   facet_wrap(~ Subject, nrow = 11)</code></pre>
 <p><img src="p08_files/figure-html/plot-veh-scoph-lever-press-2.png" width="672" /></p>
 </div>
-<div id="plot-nose-poke-event-of-s_high-and-veh-for-all-rats."
+<div
+id="plot-all-3-events-lever-press-nose-poke-and-sugar-pallet-eared-of-s_high-and-veh-for-all-rats."
 class="section level3">
-<h3>3. Plot nose poke event of S_HIGH and VEH for all rats.</h3>
+<h3>3. Plot all 3 events (lever press, nose poke, and sugar pallet
+eared) of S_HIGH and VEH for all rats.</h3>
 <pre class="r"><code>IM_Carray_all_clean %&gt;%
   filter(Drug == &quot;S_HIGH&quot;) %&gt;%
   ggplot(aes(x = Time, y = Event, color = Subject)) +
@@ -407,6 +409,10 @@ class="section level3">
     labels = c(&quot;lever press&quot;, &quot;nose poke&quot;, &quot;sugar pallet earned&quot;)
   )</code></pre>
 <p><img src="p08_files/figure-html/plot-veh-scoph-nose-poke-2.png" width="672" /></p>
+<p>The patterns of nose poke and sugar pallet earned are consistent with
+that of lever press, supporting our decrease appetitive motivation
+hypothesis (rats who got high dose scopolomine were less interested in
+lever pressing to get sugar pallets).</p>
 </div>
 
 
