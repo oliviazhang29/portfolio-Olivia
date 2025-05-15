@@ -13,7 +13,7 @@
 
 <title>Portfolio 4</title>
 
-<script src="site_libs/header-attrs-2.13/header-attrs.js"></script>
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
@@ -141,11 +141,15 @@ $(document).ready(function () {
     href = "index.html";
   var menuAnchor = $('a[href="' + href + '"]');
 
-  // mark it active
-  menuAnchor.tab('show');
-
-  // if it's got a parent navbar menu mark it active as well
-  menuAnchor.closest('li.dropdown').addClass('active');
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
 
   // Navbar adjustments
   var navHeight = $(".navbar").first().height() + 15;
@@ -174,8 +178,8 @@ $(document).ready(function () {
   border-radius: 4px;
 }
 
-.tabset-dropdown > .nav-tabs > li.active:before {
-  content: "";
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
   font-family: 'Glyphicons Halflings';
   display: inline-block;
   padding: 10px;
@@ -183,16 +187,9 @@ $(document).ready(function () {
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
-  content: "&#xe258;";
-  border: none;
-}
-
-.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
-  content: "";
+  content: "\e258";
   font-family: 'Glyphicons Halflings';
-  display: inline-block;
-  padding: 10px;
-  border-right: 1px solid #ddd;
+  border: none;
 }
 
 .tabset-dropdown > .nav-tabs > li.active {
@@ -299,12 +296,439 @@ $(document).ready(function () {
 
 
 <blockquote>
-<p>The projects should be numbered consecutively (i.e., in the order in
-which you began them), and should include for each project a description
-of the goal, the product (computer program, hand graph, computer graph,
-etc.), the data, and some interpretation. Reports must be reproducible
-and of high quality in terms of writing, grammar, presentation, etc.</p>
+<p>This project aims to analyze the main DVs of my first year project,
+which looks at the effect of acetylcholine antagonists in the nucleus
+accumbens on rats’ impulsive action, measured by the DRL-20 paradigm
+(restrain lever press for 20 seconds to get a sugar pallet). The 3 main
+DVs we’re looking at is reinforcerns earned, lever presses, and
+efficiency (reinforcers earned/total level presses)</p>
 </blockquote>
+<div id="prep-data-cleaning." class="section level3">
+<h3>0. Prep &amp; data cleaning.</h3>
+<pre class="r"><code>library(readxl)
+library(tidyverse)</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.4     ✔ readr     2.1.4
+## ✔ forcats   1.0.0     ✔ stringr   1.5.1
+## ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
+## ✔ lubridate 1.9.3     ✔ tidyr     1.3.0
+## ✔ purrr     1.0.2     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>library(haven)
+library(lme4)</code></pre>
+<pre><code>## Loading required package: Matrix
+## 
+## Attaching package: &#39;Matrix&#39;
+## 
+## The following objects are masked from &#39;package:tidyr&#39;:
+## 
+##     expand, pack, unpack</code></pre>
+<pre class="r"><code>library(lmerTest)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;lmerTest&#39;
+## 
+## The following object is masked from &#39;package:lme4&#39;:
+## 
+##     lmer
+## 
+## The following object is masked from &#39;package:stats&#39;:
+## 
+##     step</code></pre>
+<pre class="r"><code>library(ez)
+library(emmeans)</code></pre>
+<pre><code>## Welcome to emmeans.
+## Caution: You lose important information if you filter this package&#39;s results.
+## See &#39;? untidy&#39;</code></pre>
+<pre class="r"><code>IM_DD1_BasicData &lt;- read_excel(&quot;data/fyp/IM_DD1_BasicData.xlsx&quot;)
+IM_DD2_BasicData &lt;- read_excel(&quot;data/fyp/IM_DD2_BasicData.xlsx&quot;)
+IM_DD3_BasicData &lt;- read_excel(&quot;data/fyp/IM_DD3_BasicData.xlsx&quot;)
+IM_DD4_BasicData &lt;- read_excel(&quot;data/fyp/IM_DD4_BasicData.xlsx&quot;)
+IM_DD5_BasicData &lt;- read_excel(&quot;data/fyp/IM_DD5_BasicData.xlsx&quot;)</code></pre>
+<pre class="r"><code>IM_all &lt;- bind_rows(IM_DD1_BasicData, IM_DD2_BasicData, IM_DD3_BasicData, IM_DD4_BasicData, IM_DD5_BasicData)</code></pre>
+<pre class="r"><code>IM_all$Group &lt;- ifelse(IM_all$Group %in% c(&quot;M_HI&quot;, &quot;MEC_HI&quot;, &quot;MEC-HI&quot;), &quot;M_HIGH&quot;, IM_all$Group)
+IM_all$Group &lt;- ifelse(IM_all$Group %in% c(&quot;M_LO&quot;, &quot;MEC_LO&quot;, &quot;MEC-LO&quot;, &quot;MEC-LOW&quot;), &quot;M_LOW&quot;, IM_all$Group)
+IM_all$Group &lt;- ifelse(IM_all$Group %in% c(&quot;S_HI&quot;, &quot;SCOP_HI&quot;, &quot;SCOP-HI&quot;), &quot;S_HIGH&quot;, IM_all$Group)
+IM_all$Group &lt;- ifelse(IM_all$Group %in% c(&quot;S_LO&quot;, &quot;SCOP_LO&quot;, &quot;SCOP-LOW&quot;, &quot;SCP-LOW&quot;, &quot;SCOP-LO&quot;), &quot;S_LOW&quot;, IM_all$Group)</code></pre>
+<pre class="r"><code>IM_all$Efficiency &lt;- IM_all$ReinforcersEarned / IM_all$RightLeverPress * 100</code></pre>
+<pre class="r"><code>#long to wide
+IM_all_wide &lt;- IM_all %&gt;%
+  select(Subject, Group, Efficiency, ReinforcersEarned, RightLeverPress, LeftLeverPress, NosePokes) %&gt;%
+  pivot_wider(
+    names_from = Group,  # Columns to create
+    values_from = c(Efficiency, ReinforcersEarned, RightLeverPress, LeftLeverPress, NosePokes)     # Values to fill
+  )
+
+write_sav(IM_all_wide, &quot;data/fyp/IM_all_wide.sav&quot;)</code></pre>
+<pre class="r"><code>IM_all_clean &lt;- IM_all %&gt;%
+  filter(Subject != &quot;IM10&quot;)</code></pre>
+</div>
+<div id="visualization." class="section level3">
+<h3>1. Visualization.</h3>
+<pre class="r"><code>IM_all_clean$Group &lt;- factor(IM_all_clean$Group, levels = c(&quot;M_HIGH&quot;, &quot;M_LOW&quot;, &quot;VEH&quot;, &quot;S_LOW&quot;, &quot;S_HIGH&quot;))
+write_rds(IM_all_clean, &quot;data/fyp/IM_all_clean.rds&quot;)
+
+#Lever press plot
+IM_all_clean %&gt;%
+  ggplot(aes(x = Group, y = RightLeverPress)) +
+  geom_boxplot() +
+  geom_point(aes(color = Subject)) +  
+  stat_summary(fun = mean, geom = &quot;line&quot;, group = 1, color = &quot;black&quot;) +  
+  stat_summary(fun = mean, geom = &quot;point&quot;, color = &quot;black&quot;) </code></pre>
+<p><img src="p04_files/figure-html/vis-1.png" width="672" /></p>
+<pre class="r"><code>#Reinforcers earned plot
+IM_all_clean %&gt;%
+  ggplot(aes(x = Group, y = ReinforcersEarned)) +
+  geom_boxplot() +
+  geom_point(aes(color = Subject)) +  
+  stat_summary(fun = mean, geom = &quot;line&quot;, group = 1, color = &quot;black&quot;) +  
+  stat_summary(fun = mean, geom = &quot;point&quot;, color = &quot;black&quot;) </code></pre>
+<p><img src="p04_files/figure-html/vis-2.png" width="672" /></p>
+<pre class="r"><code>#Efficiency plot
+IM_all_clean %&gt;%
+  ggplot(aes(x = Group, y = Efficiency)) +
+  geom_boxplot() +
+  geom_point(aes(color = Subject)) +  
+  stat_summary(fun = mean, geom = &quot;line&quot;, group = 1, color = &quot;black&quot;) +  
+  stat_summary(fun = mean, geom = &quot;point&quot;, color = &quot;black&quot;)  </code></pre>
+<p><img src="p04_files/figure-html/vis-3.png" width="672" /></p>
+<pre class="r"><code>#random intercept
+LPmodel &lt;- lmer(RightLeverPress ~ Group + (1|Subject), data = IM_all_clean)
+summary(LPmodel)
+
+#random slope
+LPmodel.random.slope &lt;- lmer(RightLeverPress ~ Group + (Group|Subject), data = IM_all_clean)
+summary(LPmodel.random.slope)
+
+#likelihood ratio test
+anova(LPmodel.random.slope, LPmodel)</code></pre>
+<p>Multilevel modelling doesn’t work because we don’t have enough data
+points.</p>
+</div>
+<div id="anova-and-post-hocs." class="section level3">
+<h3>ANOVA and post-hocs.</h3>
+<pre class="r"><code>#anova: Right Lever Press
+RLP_results &lt;- ezANOVA(
+  data = IM_all_clean,
+  dv = .(RightLeverPress),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)</code></pre>
+<pre><code>## Warning: Converting &quot;Subject&quot; to factor for ANOVA.</code></pre>
+<pre class="r"><code>RLP_results #sig</code></pre>
+<pre><code>## $ANOVA
+##   Effect DFn DFd        F            p p&lt;.05       ges
+## 2  Group   4  40 9.911826 1.141351e-05     * 0.3352766
+## 
+## $`Mauchly&#39;s Test for Sphericity`
+##   Effect         W          p p&lt;.05
+## 2  Group 0.1452731 0.06673311      
+## 
+## $`Sphericity Corrections`
+##   Effect       GGe        p[GG] p[GG]&lt;.05       HFe        p[HF] p[HF]&lt;.05
+## 2  Group 0.6593643 0.0002400985         * 0.9172112 2.382387e-05         *</code></pre>
+<pre class="r"><code>#post hoc
+pairwise.t.test(IM_all_clean$RightLeverPress, IM_all_clean$Group, paired = TRUE, p.adjust.method = &quot;bonferroni&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using paired t tests 
+## 
+## data:  IM_all_clean$RightLeverPress and IM_all_clean$Group 
+## 
+##        M_HIGH M_LOW VEH   S_LOW
+## M_LOW  1.000  -     -     -    
+## VEH    1.000  1.000 -     -    
+## S_LOW  1.000  1.000 1.000 -    
+## S_HIGH 0.333  0.015 0.013 0.047
+## 
+## P value adjustment method: bonferroni</code></pre>
+<pre class="r"><code>#S_HIGH pressed significantly less levers than all other groups
+
+#anova: Reinforcers Earned
+RE_results &lt;- ezANOVA(
+  data = IM_all_clean,
+  dv = .(ReinforcersEarned),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)</code></pre>
+<pre><code>## Warning: Converting &quot;Subject&quot; to factor for ANOVA.</code></pre>
+<pre class="r"><code>RE_results #sig</code></pre>
+<pre><code>## $ANOVA
+##   Effect DFn DFd        F            p p&lt;.05       ges
+## 2  Group   4  40 15.33817 1.101513e-07     * 0.4900084
+## 
+## $`Mauchly&#39;s Test for Sphericity`
+##   Effect         W         p p&lt;.05
+## 2  Group 0.3074639 0.3655891      
+## 
+## $`Sphericity Corrections`
+##   Effect       GGe        p[GG] p[GG]&lt;.05      HFe        p[HF] p[HF]&lt;.05
+## 2  Group 0.7058361 5.649851e-06         * 1.012198 1.101513e-07         *</code></pre>
+<pre class="r"><code>#post hoc
+pairwise.t.test(IM_all_clean$ReinforcersEarned, IM_all_clean$Group, paired = TRUE, p.adjust.method = &quot;bonferroni&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using paired t tests 
+## 
+## data:  IM_all_clean$ReinforcersEarned and IM_all_clean$Group 
+## 
+##        M_HIGH  M_LOW   VEH     S_LOW  
+## M_LOW  1.00000 -       -       -      
+## VEH    1.00000 1.00000 -       -      
+## S_LOW  1.00000 1.00000 1.00000 -      
+## S_HIGH 0.00015 0.00134 0.00335 0.09059
+## 
+## P value adjustment method: bonferroni</code></pre>
+<pre class="r"><code># Fit the repeated measures model
+RE_model &lt;- aov(ReinforcersEarned ~ Group + Error(Subject / Group), data = IM_all_clean)
+
+# Pairwise comparisons with Tukey adjustment
+RE_tukey &lt;- emmeans(RE_model, pairwise ~ Group, adjust = &quot;tukey&quot;)</code></pre>
+<pre><code>## Note: re-fitting model with sum-to-zero contrasts</code></pre>
+<pre class="r"><code># View results
+RE_tukey</code></pre>
+<pre><code>## $emmeans
+##  Group  emmean SE   df lower.CL upper.CL
+##  M_HIGH   70.5  5 42.1     60.4     80.5
+##  M_LOW    70.3  5 42.1     60.2     80.4
+##  VEH      73.3  5 42.1     63.2     83.4
+##  S_LOW    59.3  5 42.1     49.2     69.4
+##  S_HIGH   31.5  5 42.1     21.4     41.5
+## 
+## Warning: EMMs are biased unless design is perfectly balanced 
+## Confidence level used: 0.95 
+## 
+## $contrasts
+##  contrast        estimate   SE df t.ratio p.value
+##  M_HIGH - M_LOW     0.182 6.26 40   0.029  1.0000
+##  M_HIGH - VEH      -2.818 6.26 40  -0.450  0.9912
+##  M_HIGH - S_LOW    11.182 6.26 40   1.786  0.3954
+##  M_HIGH - S_HIGH   39.000 6.26 40   6.231  &lt;.0001
+##  M_LOW - VEH       -3.000 6.26 40  -0.479  0.9888
+##  M_LOW - S_LOW     11.000 6.26 40   1.757  0.4120
+##  M_LOW - S_HIGH    38.818 6.26 40   6.202  &lt;.0001
+##  VEH - S_LOW       14.000 6.26 40   2.237  0.1874
+##  VEH - S_HIGH      41.818 6.26 40   6.681  &lt;.0001
+##  S_LOW - S_HIGH    27.818 6.26 40   4.444  0.0006
+## 
+## P value adjustment: tukey method for comparing a family of 5 estimates</code></pre>
+<pre class="r"><code>#S_HIGH got significantly less sugar pallets than all other groups
+
+#anova: Efficiency
+E_results &lt;- ezANOVA(
+  data = IM_all_clean,
+  dv = .(Efficiency),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)</code></pre>
+<pre><code>## Warning: Converting &quot;Subject&quot; to factor for ANOVA.</code></pre>
+<pre class="r"><code>E_results #not sig</code></pre>
+<pre><code>## $ANOVA
+##   Effect DFn DFd        F        p p&lt;.05       ges
+## 2  Group   4  40 1.258268 0.302329       0.0581164
+## 
+## $`Mauchly&#39;s Test for Sphericity`
+##   Effect         W         p p&lt;.05
+## 2  Group 0.4032846 0.5783114      
+## 
+## $`Sphericity Corrections`
+##   Effect      GGe     p[GG] p[GG]&lt;.05       HFe     p[HF] p[HF]&lt;.05
+## 2  Group 0.683754 0.3068477           0.9664569 0.3030021</code></pre>
+<pre class="r"><code>#post hoc
+pairwise.t.test(IM_all_clean$Efficiency, IM_all_clean$Group, paired = TRUE, p.adjust.method = &quot;bonferroni&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using paired t tests 
+## 
+## data:  IM_all_clean$Efficiency and IM_all_clean$Group 
+## 
+##        M_HIGH M_LOW VEH S_LOW
+## M_LOW  1      -     -   -    
+## VEH    1      1     -   -    
+## S_LOW  1      1     1   -    
+## S_HIGH 1      1     1   1    
+## 
+## P value adjustment method: bonferroni</code></pre>
+<pre class="r"><code>#all groups have the same efficiency
+
+#anova: Nose pokes
+NP_results &lt;- ezANOVA(
+  data = IM_all_clean,
+  dv = .(NosePokes),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)</code></pre>
+<pre><code>## Warning: Converting &quot;Subject&quot; to factor for ANOVA.</code></pre>
+<pre class="r"><code>NP_results #sig</code></pre>
+<pre><code>## $ANOVA
+##   Effect DFn DFd        F            p p&lt;.05       ges
+## 2  Group   4  40 8.208713 6.239073e-05     * 0.1990504
+## 
+## $`Mauchly&#39;s Test for Sphericity`
+##   Effect          W         p p&lt;.05
+## 2  Group 0.08152305 0.0137779     *
+## 
+## $`Sphericity Corrections`
+##   Effect       GGe      p[GG] p[GG]&lt;.05      HFe       p[HF] p[HF]&lt;.05
+## 2  Group 0.4955135 0.00258144         * 0.617446 0.001037027         *</code></pre>
+<pre class="r"><code>#post hoc
+pairwise.t.test(IM_all_clean$NosePokes, IM_all_clean$Group, paired = TRUE, p.adjust.method = &quot;bonferroni&quot;)</code></pre>
+<pre><code>## 
+##  Pairwise comparisons using paired t tests 
+## 
+## data:  IM_all_clean$NosePokes and IM_all_clean$Group 
+## 
+##        M_HIGH M_LOW VEH  S_LOW
+## M_LOW  1.00   -     -    -    
+## VEH    1.00   1.00  -    -    
+## S_LOW  1.00   1.00  1.00 -    
+## S_HIGH 0.15   0.12  0.28 0.27 
+## 
+## P value adjustment method: bonferroni</code></pre>
+<pre class="r"><code>#rats who received scopolamine high had less nose pokes</code></pre>
+<pre class="r"><code>#if efficiency for two drugs are analyzed separately 
+#sco
+E_sco_results &lt;- IM_all_clean %&gt;%
+  filter(Group %in% c(&quot;VEH&quot;, &quot;S_LOW&quot;, &quot;S_HIGH&quot;)) %&gt;%
+  ezANOVA(
+  dv = .(Efficiency),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)</code></pre>
+<pre><code>## Warning: Converting &quot;Subject&quot; to factor for ANOVA.</code></pre>
+<pre><code>## Warning: You have removed one or more levels from variable &quot;Group&quot;. Refactoring
+## for ANOVA.</code></pre>
+<pre class="r"><code>E_sco_results #not sig</code></pre>
+<pre><code>## $ANOVA
+##   Effect DFn DFd        F         p p&lt;.05       ges
+## 2  Group   2  20 1.157474 0.3344578       0.0504453
+## 
+## $`Mauchly&#39;s Test for Sphericity`
+##   Effect         W         p p&lt;.05
+## 2  Group 0.7358192 0.2514607      
+## 
+## $`Sphericity Corrections`
+##   Effect       GGe     p[GG] p[GG]&lt;.05       HFe     p[HF] p[HF]&lt;.05
+## 2  Group 0.7910261 0.3271665           0.9148652 0.3319291</code></pre>
+<pre class="r"><code>#mec
+E_mec_results &lt;- IM_all_clean %&gt;%
+  filter(Group %in% c(&quot;VEH&quot;, &quot;M_LOW&quot;, &quot;M_HIGH&quot;)) %&gt;%
+  ezANOVA(
+  dv = .(Efficiency),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)</code></pre>
+<pre><code>## Warning: Converting &quot;Subject&quot; to factor for ANOVA.
+## Warning: You have removed one or more levels from variable &quot;Group&quot;. Refactoring
+## for ANOVA.</code></pre>
+<pre class="r"><code>E_mec_results #not sig</code></pre>
+<pre><code>## $ANOVA
+##   Effect DFn DFd         F         p p&lt;.05         ges
+## 2  Group   2  20 0.2176982 0.8062492       0.005159785
+## 
+## $`Mauchly&#39;s Test for Sphericity`
+##   Effect         W         p p&lt;.05
+## 2  Group 0.8646375 0.5197007      
+## 
+## $`Sphericity Corrections`
+##   Effect      GGe     p[GG] p[GG]&lt;.05      HFe     p[HF] p[HF]&lt;.05
+## 2  Group 0.880776 0.7793239           1.054633 0.8062492</code></pre>
+</div>
+<div id="conclusion." class="section level3">
+<h3>Conclusion.</h3>
+<ol style="list-style-type: decimal">
+<li>Drug condition significantly affects lever presses. Specifically,
+high dose of scopolamine decreases lever presses.</li>
+<li>Drug condition significantly affects reinforcers earned.
+Specifically, rats who got high dose of scopolamine received less sugar
+pallets.</li>
+<li>Drug condition doesn’t affect efficiency.</li>
+</ol>
+<p>Together, the results implied that high dose of scopolamine might
+impair rats’ motor activities. Further analyses are needed.</p>
+</div>
+<div id="now-some-bar-plots." class="section level3">
+<h3>Now some bar plots.</h3>
+<pre class="r"><code># total level press
+# Calculate standard error
+means &lt;- IM_all_clean %&gt;%
+  group_by(Group) %&gt;%
+  summarize(
+    MeanScore = mean(RightLeverPress),
+    SE = sd(RightLeverPress) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = &quot;identity&quot;, width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = &quot;darkgrey&quot;) +
+  labs(title = &quot;Total Lever Presses&quot;, x = NULL, y = NULL) +
+  scale_fill_manual(values = c(&quot;M_HIGH&quot; = &quot;#397DB0&quot;, &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, &quot;VEH&quot; = &quot;#fbf0d9&quot;, &quot;S_LOW&quot; = &quot;#9ED17B&quot;, &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;)) +
+  scale_x_discrete(labels = c(&quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, &quot;VEH&quot; = &quot;Vehicle&quot;, &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;)) +
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;, axis.text.x = element_text(size = 11, face = &quot;bold&quot;), axis.text.y = element_text(size = 15, face = &quot;bold&quot;),  plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;))</code></pre>
+<p><img src="p04_files/figure-html/bar-plot-lever-press-1.png" width="672" /></p>
+<pre class="r"><code># total reinforcers earned
+# Calculate standard error
+means &lt;- IM_all_clean %&gt;%
+  group_by(Group) %&gt;%
+  summarize(
+    MeanScore = mean(ReinforcersEarned),
+    SE = sd(ReinforcersEarned) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = &quot;identity&quot;, width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = &quot;darkgrey&quot;) +
+  labs(title = &quot;Reinforcers Earned&quot;, x = NULL, y = NULL) +
+  scale_fill_manual(values = c(&quot;M_HIGH&quot; = &quot;#397DB0&quot;, &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, &quot;VEH&quot; = &quot;#fbf0d9&quot;, &quot;S_LOW&quot; = &quot;#9ED17B&quot;, &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;)) +
+  scale_x_discrete(labels = c(&quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, &quot;VEH&quot; = &quot;Vehicle&quot;, &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;)) +
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;, axis.text.x = element_text(size = 11, face = &quot;bold&quot;), axis.text.y = element_text(size = 15, face = &quot;bold&quot;),  plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;)) </code></pre>
+<p><img src="p04_files/figure-html/bar-plot-reinforcers-earned-1.png" width="672" /></p>
+<pre class="r"><code># efficiency
+# Calculate standard error
+means &lt;- IM_all_clean %&gt;%
+  group_by(Group) %&gt;%
+  summarize(
+    MeanScore = mean(Efficiency),
+    SE = sd(Efficiency) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = &quot;identity&quot;, width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = &quot;darkgrey&quot;) +
+  labs(title = &quot;Efficiency&quot;, x = NULL, y = NULL) +
+  scale_fill_manual(values = c(&quot;M_HIGH&quot; = &quot;#397DB0&quot;, &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, &quot;VEH&quot; = &quot;#fbf0d9&quot;, &quot;S_LOW&quot; = &quot;#9ED17B&quot;, &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;)) +
+  scale_x_discrete(labels = c(&quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, &quot;VEH&quot; = &quot;Vehicle&quot;, &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;)) +
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;, axis.text.x = element_text(size = 11, face = &quot;bold&quot;), axis.text.y = element_text(size = 15, face = &quot;bold&quot;),  plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;)) </code></pre>
+<p><img src="p04_files/figure-html/bar-plot-efficiency-1.png" width="672" /></p>
+<pre class="r"><code># total nose pokes
+# Calculate standard error
+means &lt;- IM_all_clean %&gt;%
+  group_by(Group) %&gt;%
+  summarize(
+    MeanScore = mean(NosePokes),
+    SE = sd(NosePokes) / sqrt(n()),
+    .groups = &quot;drop&quot;
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = &quot;identity&quot;, width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = &quot;darkgrey&quot;) +
+  labs(title = &quot;Total Nose Pokes&quot;, x = NULL, y = NULL) +
+  scale_fill_manual(values = c(&quot;M_HIGH&quot; = &quot;#397DB0&quot;, &quot;M_LOW&quot; = &quot;#9DC7DD&quot;, &quot;VEH&quot; = &quot;#fbf0d9&quot;, &quot;S_LOW&quot; = &quot;#9ED17B&quot;, &quot;S_HIGH&quot; = &quot;#3D9F3C&quot;)) +
+  scale_x_discrete(labels = c(&quot;M_HIGH&quot; = &quot;Mecamylamine\nHigh Dose&quot;, &quot;M_LOW&quot; = &quot;Mecamylamine\nLow Dose&quot;, &quot;VEH&quot; = &quot;Vehicle&quot;, &quot;S_LOW&quot; = &quot;Scopolamine\nLow Dose&quot;, &quot;S_HIGH&quot; = &quot;Scopolamine\nHigh Dose&quot;)) +
+  theme_minimal() +
+  theme(legend.position = &quot;none&quot;, axis.text.x = element_text(size = 11), axis.text.y = element_text(size = 15),  plot.title = element_text(hjust = 0.5, size = 20, face = &quot;bold&quot;)) </code></pre>
+<p><img src="p04_files/figure-html/bar-plot-nose-poke-1.png" width="672" /></p>
+</div>
 
 
 

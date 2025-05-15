@@ -2,4 +2,296 @@
 title: "Portfolio 4"
 ---
 
-> The projects should be numbered consecutively (i.e., in the order in which you began them), and should include for each project a description of the goal, the product (computer program, hand graph, computer graph, etc.), the data, and some interpretation. Reports must be reproducible and of high quality in terms of writing, grammar, presentation, etc.
+> This project aims to analyze the main DVs of my first year project, which looks at the effect of acetylcholine antagonists in the nucleus accumbens on rats' impulsive action, measured by the DRL-20 paradigm (restrain lever press for 20 seconds to get a sugar pallet). The 3 main DVs we're looking at is reinforcerns earned, lever presses, and efficiency (reinforcers earned/total level presses)
+
+### 0. Prep & data cleaning.
+
+```{r load-in-packages}
+library(readxl)
+library(tidyverse)
+library(haven)
+library(lme4)
+library(lmerTest)
+library(ez)
+library(emmeans)
+library(effectsize)
+```
+
+```{r read-in-data}
+IM_DD1_BasicData <- read_excel("data/fyp/IM_DD1_BasicData.xlsx")
+IM_DD2_BasicData <- read_excel("data/fyp/IM_DD2_BasicData.xlsx")
+IM_DD3_BasicData <- read_excel("data/fyp/IM_DD3_BasicData.xlsx")
+IM_DD4_BasicData <- read_excel("data/fyp/IM_DD4_BasicData.xlsx")
+IM_DD5_BasicData <- read_excel("data/fyp/IM_DD5_BasicData.xlsx")
+```
+
+```{r combine-the-data}
+IM_all <- bind_rows(IM_DD1_BasicData, IM_DD2_BasicData, IM_DD3_BasicData, IM_DD4_BasicData, IM_DD5_BasicData)
+```
+
+```{r clean-data}
+IM_all$Group <- ifelse(IM_all$Group %in% c("M_HI", "MEC_HI", "MEC-HI"), "M_HIGH", IM_all$Group)
+IM_all$Group <- ifelse(IM_all$Group %in% c("M_LO", "MEC_LO", "MEC-LO", "MEC-LOW"), "M_LOW", IM_all$Group)
+IM_all$Group <- ifelse(IM_all$Group %in% c("S_HI", "SCOP_HI", "SCOP-HI"), "S_HIGH", IM_all$Group)
+IM_all$Group <- ifelse(IM_all$Group %in% c("S_LO", "SCOP_LO", "SCOP-LOW", "SCP-LOW", "SCOP-LO"), "S_LOW", IM_all$Group)
+```
+
+```{r cal-efficiency}
+IM_all$Efficiency <- IM_all$ReinforcersEarned / IM_all$RightLeverPress * 100
+```
+
+```{r write-out-data}
+#long to wide
+IM_all_wide <- IM_all %>%
+  select(Subject, Group, Efficiency, ReinforcersEarned, RightLeverPress, LeftLeverPress, NosePokes) %>%
+  pivot_wider(
+    names_from = Group,  # Columns to create
+    values_from = c(Efficiency, ReinforcersEarned, RightLeverPress, LeftLeverPress, NosePokes)     # Values to fill
+  )
+
+write_sav(IM_all_wide, "data/fyp/IM_all_wide.sav")
+```
+
+```{r exclude-IM10}
+IM_all_clean <- IM_all %>%
+  filter(Subject != "IM10")
+```
+
+
+### 1. Visualization.
+```{r vis}
+IM_all_clean$Group <- factor(IM_all_clean$Group, levels = c("M_HIGH", "M_LOW", "VEH", "S_LOW", "S_HIGH"))
+write_rds(IM_all_clean, "data/fyp/IM_all_clean.rds")
+
+#Lever press plot
+IM_all_clean %>%
+  ggplot(aes(x = Group, y = RightLeverPress)) +
+  geom_boxplot() +
+  geom_point(aes(color = Subject)) +  
+  stat_summary(fun = mean, geom = "line", group = 1, color = "black") +  
+  stat_summary(fun = mean, geom = "point", color = "black") 
+
+#Reinforcers earned plot
+IM_all_clean %>%
+  ggplot(aes(x = Group, y = ReinforcersEarned)) +
+  geom_boxplot() +
+  geom_point(aes(color = Subject)) +  
+  stat_summary(fun = mean, geom = "line", group = 1, color = "black") +  
+  stat_summary(fun = mean, geom = "point", color = "black") 
+
+#Efficiency plot
+IM_all_clean %>%
+  ggplot(aes(x = Group, y = Efficiency)) +
+  geom_boxplot() +
+  geom_point(aes(color = Subject)) +  
+  stat_summary(fun = mean, geom = "line", group = 1, color = "black") +  
+  stat_summary(fun = mean, geom = "point", color = "black")  
+```
+
+```{r multilevel-model, eval=FALSE}
+#random intercept
+LPmodel <- lmer(RightLeverPress ~ Group + (1|Subject), data = IM_all_clean)
+summary(LPmodel)
+
+#random slope
+LPmodel.random.slope <- lmer(RightLeverPress ~ Group + (Group|Subject), data = IM_all_clean)
+summary(LPmodel.random.slope)
+
+#likelihood ratio test
+anova(LPmodel.random.slope, LPmodel)
+```
+Multilevel modelling doesn't work because we don't have enough data points. 
+
+### ANOVA and post-hocs.
+```{r anova-t-test}
+#anova: Right Lever Press
+RLP_results <- ezANOVA(
+  data = IM_all_clean,
+  dv = .(RightLeverPress),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)
+RLP_results #sig
+#post hoc
+pairwise.t.test(IM_all_clean$RightLeverPress, IM_all_clean$Group, paired = TRUE, p.adjust.method = "bonferroni")
+#S_HIGH pressed significantly less levers than all other groups
+###################################################################################
+# Conduct repeated measures ANOVA
+anova_result <- aov_car(Efficiency ~ Group + Error(Subject/Group), data = IM_all_clean)
+
+# View ANOVA table
+print(anova_result)
+
+# Calculate effect size
+effect_sizes <- eta_squared(anova_result)
+print(effect_sizes)
+###################################################################################
+
+#anova: Reinforcers Earned
+RE_results <- ezANOVA(
+  data = IM_all_clean,
+  dv = .(ReinforcersEarned),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)
+RE_results #sig
+#post hoc
+pairwise.t.test(IM_all_clean$ReinforcersEarned, IM_all_clean$Group, paired = TRUE, p.adjust.method = "bonferroni")
+
+# Fit the repeated measures model
+RE_model <- aov(ReinforcersEarned ~ Group + Error(Subject / Group), data = IM_all_clean)
+
+# Pairwise comparisons with Tukey adjustment
+RE_tukey <- emmeans(RE_model, pairwise ~ Group, adjust = "tukey")
+
+# View results
+RE_tukey
+
+#S_HIGH got significantly less sugar pallets than all other groups
+
+#anova: Efficiency
+E_results <- ezANOVA(
+  data = IM_all_clean,
+  dv = .(Efficiency),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)
+E_results #not sig
+#post hoc
+pairwise.t.test(IM_all_clean$Efficiency, IM_all_clean$Group, paired = TRUE, p.adjust.method = "bonferroni")
+#all groups have the same efficiency
+
+#anova: Nose pokes
+NP_results <- ezANOVA(
+  data = IM_all_clean,
+  dv = .(NosePokes),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)
+NP_results #sig
+#post hoc
+pairwise.t.test(IM_all_clean$NosePokes, IM_all_clean$Group, paired = TRUE, p.adjust.method = "bonferroni")
+#rats who received scopolamine high had less nose pokes
+```
+
+```{r two-drug-sep}
+#if efficiency for two drugs are analyzed separately 
+#sco
+E_sco_results <- IM_all_clean %>%
+  filter(Group %in% c("VEH", "S_LOW", "S_HIGH")) %>%
+  ezANOVA(
+  dv = .(Efficiency),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)
+E_sco_results #not sig
+
+#mec
+E_mec_results <- IM_all_clean %>%
+  filter(Group %in% c("VEH", "M_LOW", "M_HIGH")) %>%
+  ezANOVA(
+  dv = .(Efficiency),     # Dependent variable
+  wid = .(Subject),  # Within-subject variable (ID)
+  within = .(Group)   # Repeated measures factor
+)
+E_mec_results #not sig
+```
+
+### Conclusion.
+1. Drug condition significantly affects lever presses. Specifically, high dose of scopolamine decreases lever presses.
+2. Drug condition significantly affects reinforcers earned. Specifically, rats who got high dose of scopolamine received less sugar pallets.
+3. Drug condition doesn't affect efficiency.
+
+Together, the results implied that high dose of scopolamine might impair rats' motor activities. Further analyses are needed.
+
+### Now some bar plots.
+
+```{r bar-plot-lever-press}
+# total level press
+# Calculate standard error
+means <- IM_all_clean %>%
+  group_by(Group) %>%
+  summarize(
+    MeanScore = mean(RightLeverPress),
+    SE = sd(RightLeverPress) / sqrt(n()),
+    .groups = "drop"
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = "darkgrey") +
+  labs(title = "Total Lever Presses", x = NULL, y = NULL) +
+  scale_fill_manual(values = c("M_HIGH" = "#397DB0", "M_LOW" = "#9DC7DD", "VEH" = "#fbf0d9", "S_LOW" = "#9ED17B", "S_HIGH" = "#3D9F3C")) +
+  scale_x_discrete(labels = c("M_HIGH" = "Mecamylamine\nHigh Dose", "M_LOW" = "Mecamylamine\nLow Dose", "VEH" = "Vehicle", "S_LOW" = "Scopolamine\nLow Dose", "S_HIGH" = "Scopolamine\nHigh Dose")) +
+  theme_minimal() +
+  theme(legend.position = "none", axis.text.x = element_text(size = 11, face = "bold"), axis.text.y = element_text(size = 15, face = "bold"),  plot.title = element_text(hjust = 0.5, size = 20, face = "bold"))
+```
+
+```{r bar-plot-reinforcers-earned}
+# total reinforcers earned
+# Calculate standard error
+means <- IM_all_clean %>%
+  group_by(Group) %>%
+  summarize(
+    MeanScore = mean(ReinforcersEarned),
+    SE = sd(ReinforcersEarned) / sqrt(n()),
+    .groups = "drop"
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = "darkgrey") +
+  labs(title = "Reinforcers Earned", x = NULL, y = NULL) +
+  scale_fill_manual(values = c("M_HIGH" = "#397DB0", "M_LOW" = "#9DC7DD", "VEH" = "#fbf0d9", "S_LOW" = "#9ED17B", "S_HIGH" = "#3D9F3C")) +
+  scale_x_discrete(labels = c("M_HIGH" = "Mecamylamine\nHigh Dose", "M_LOW" = "Mecamylamine\nLow Dose", "VEH" = "Vehicle", "S_LOW" = "Scopolamine\nLow Dose", "S_HIGH" = "Scopolamine\nHigh Dose")) +
+  theme_minimal() +
+  theme(legend.position = "none", axis.text.x = element_text(size = 11, face = "bold"), axis.text.y = element_text(size = 15, face = "bold"),  plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+```
+
+```{r bar-plot-efficiency}
+# efficiency
+# Calculate standard error
+means <- IM_all_clean %>%
+  group_by(Group) %>%
+  summarize(
+    MeanScore = mean(Efficiency),
+    SE = sd(Efficiency) / sqrt(n()),
+    .groups = "drop"
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = "darkgrey") +
+  labs(title = "Efficiency", x = NULL, y = NULL) +
+  scale_fill_manual(values = c("M_HIGH" = "#397DB0", "M_LOW" = "#9DC7DD", "VEH" = "#fbf0d9", "S_LOW" = "#9ED17B", "S_HIGH" = "#3D9F3C")) +
+  scale_x_discrete(labels = c("M_HIGH" = "Mecamylamine\nHigh Dose", "M_LOW" = "Mecamylamine\nLow Dose", "VEH" = "Vehicle", "S_LOW" = "Scopolamine\nLow Dose", "S_HIGH" = "Scopolamine\nHigh Dose")) +
+  theme_minimal() +
+  theme(legend.position = "none", axis.text.x = element_text(size = 11, face = "bold"), axis.text.y = element_text(size = 15, face = "bold"),  plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+```
+
+
+```{r bar-plot-nose-poke}
+# total nose pokes
+# Calculate standard error
+means <- IM_all_clean %>%
+  group_by(Group) %>%
+  summarize(
+    MeanScore = mean(NosePokes),
+    SE = sd(NosePokes) / sqrt(n()),
+    .groups = "drop"
+  )
+
+# Add error bars
+ggplot(means, aes(x = Group, y = MeanScore, fill = Group)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  geom_errorbar(aes(ymin = MeanScore - SE, ymax = MeanScore + SE), width = 0.15, color = "darkgrey") +
+  labs(title = "Total Nose Pokes", x = NULL, y = NULL) +
+  scale_fill_manual(values = c("M_HIGH" = "#397DB0", "M_LOW" = "#9DC7DD", "VEH" = "#fbf0d9", "S_LOW" = "#9ED17B", "S_HIGH" = "#3D9F3C")) +
+  scale_x_discrete(labels = c("M_HIGH" = "Mecamylamine\nHigh Dose", "M_LOW" = "Mecamylamine\nLow Dose", "VEH" = "Vehicle", "S_LOW" = "Scopolamine\nLow Dose", "S_HIGH" = "Scopolamine\nHigh Dose")) +
+  theme_minimal() +
+  theme(legend.position = "none", axis.text.x = element_text(size = 11), axis.text.y = element_text(size = 15),  plot.title = element_text(hjust = 0.5, size = 20, face = "bold")) 
+
+```

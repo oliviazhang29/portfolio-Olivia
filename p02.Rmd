@@ -82,11 +82,13 @@ The previous section is not really informative. After talking to Veronica and ta
 scores <- res.pca$x
 
 #regression for one DV, too slow
-#lm.12 <- lm(cbcp_bh_sup$temperament_activity ~ scores[, 1] + scores[, 2])
+#lm.12 <- lm(cbcp_bh_sup$temperament_activity ~ scores[, 1] + scores[, 2] + scores[, 1]*scores[, 2])
 #summary(lm.12)
 
+#add interaction terms
+
 #loop
-IV.12 <- "scores[, 1] + scores[, 2]"
+IV.12 <- "scores[, 1] + scores[, 2] + scores[, 1]*scores[, 2]"
 models <- list()
 for (DV in colnames(cbcp_bh_sup)) {
   formula <- as.formula(paste(DV, "~", IV.12))
@@ -97,12 +99,17 @@ summary_all <- lapply(models, summary)
 summary_all
 ```
 
+#no interaction term
 The results show that PC1 and PC2 significantly predict the following outcomes: temperament_adaptability (p = 0.02955), temperament_mind (p = 0.0001315), temperament_distraction (p = 0.02377), SEAM_interpersonal (p = 0.002531), SEAM_emotionregulation (p = 0.01481), SEAM_empathy (0.008427), SEAM_participation (p = 0.003938), SEAM_adaptability (P = 0.00673), CBCL1648_shyness (p = 0.02755), CBCL1648_depression (p = 0.02132), CBCL46_aggression (p = 0.03965).
 
-> This is really interesting!
+#interaction term
+The results show that PC1 and PC2 significantly predict the following outcomes: temperament_adaptability (p = 0.04001), temperament_mind (p = 1.54e-05), temperament_distraction (p = 0.04317), SEAM_interpersonal (p = 0.0046), SEAM_emotionregulation (p = 0.03953), SEAM_empathy (0.02411), SEAM_participation (p = 0.008767), SEAM_adaptability (P = 0.01603), CBCL1648_shyness (p = 0.06931), CBCL1648_depression (p = 0.05443), CBCL46_aggression (p = 0.06617).
+
+> This is really interesting! Chirstian mentioned other methods to deal with datasets like this, such as regularization and SSVS. I'll look into them in my future portfolio pieces. 
 
 
 
+> Below is something I'm currently exploring. It might be predecessors of my next portfolio pieces or not. I'm not sure. It's not fully cooked. Just ignore this part.
 ```{r plot-interaction}
 cbcp_bh_sup$PC1 <- scores[, 1]
 cbcp_bh_sup$PC2 <- scores[, 2]

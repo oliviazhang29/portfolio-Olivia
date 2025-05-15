@@ -333,10 +333,10 @@ library(factoextra)</code></pre>
 <pre><code>## Welcome! Want to learn more? See two factoextra-related books at https://goo.gl/ve3WBa</code></pre>
 <pre class="r"><code>library(tidyverse)</code></pre>
 <pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-## ✔ dplyr     1.1.4     ✔ readr     2.1.5
+## ✔ dplyr     1.1.4     ✔ readr     2.1.4
 ## ✔ forcats   1.0.0     ✔ stringr   1.5.1
-## ✔ lubridate 1.9.4     ✔ tibble    3.2.1
-## ✔ purrr     1.0.2     ✔ tidyr     1.3.1</code></pre>
+## ✔ lubridate 1.9.3     ✔ tibble    3.2.1
+## ✔ purrr     1.0.2     ✔ tidyr     1.3.0</code></pre>
 <pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()
@@ -2503,11 +2503,13 @@ the outcome variables, here are the results.</p>
 <pre class="r"><code>scores &lt;- res.pca$x
 
 #regression for one DV, too slow
-#lm.12 &lt;- lm(cbcp_bh_sup$temperament_activity ~ scores[, 1] + scores[, 2])
+#lm.12 &lt;- lm(cbcp_bh_sup$temperament_activity ~ scores[, 1] + scores[, 2] + scores[, 1]*scores[, 2])
 #summary(lm.12)
 
+#add interaction terms
+
 #loop
-IV.12 &lt;- &quot;scores[, 1] + scores[, 2]&quot;
+IV.12 &lt;- &quot;scores[, 1] + scores[, 2] + scores[, 1]*scores[, 2]&quot;
 models &lt;- list()
 for (DV in colnames(cbcp_bh_sup)) {
   formula &lt;- as.formula(paste(DV, &quot;~&quot;, IV.12))
@@ -2523,19 +2525,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -1.73151 -0.37754 -0.04055  0.38026  1.91537 
+## -1.24983 -0.32330 -0.09894  0.34527  1.72485 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  3.690000   0.121105  30.469   &lt;2e-16 ***
-## scores[, 1] -0.059082   0.041073  -1.438    0.159    
-## scores[, 2]  0.004367   0.056080   0.078    0.938    
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              3.69000    0.11344  32.528   &lt;2e-16 ***
+## scores[, 1]             -0.05758    0.03848  -1.497   0.1435    
+## scores[, 2]              0.02737    0.05336   0.513   0.6113    
+## scores[, 1]:scores[, 2]  0.03728    0.01518   2.455   0.0192 *  
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.7563 on 36 degrees of freedom
-## Multiple R-squared:  0.0545, Adjusted R-squared:  0.001975 
-## F-statistic: 1.038 on 2 and 36 DF,  p-value: 0.3647
+## Residual standard error: 0.7084 on 35 degrees of freedom
+## Multiple R-squared:  0.1934, Adjusted R-squared:  0.1243 
+## F-statistic: 2.798 on 3 and 35 DF,  p-value: 0.05435
 ## 
 ## 
 ## $temperament_rhythmic
@@ -2545,19 +2548,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -1.25128 -0.43562 -0.07535  0.45055  1.84078 
+## -1.21952 -0.38397 -0.08164  0.42598  1.77895 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  3.22333    0.12429  25.934   &lt;2e-16 ***
-## scores[, 1] -0.07385    0.04215  -1.752   0.0883 .  
-## scores[, 2] -0.06627    0.05756  -1.151   0.2571    
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              3.22333    0.12260  26.291   &lt;2e-16 ***
+## scores[, 1]             -0.07292    0.04159  -1.754   0.0883 .  
+## scores[, 2]             -0.05196    0.05767  -0.901   0.3738    
+## scores[, 1]:scores[, 2]  0.02320    0.01641   1.414   0.1661    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.7762 on 36 degrees of freedom
-## Multiple R-squared:  0.1088, Adjusted R-squared:  0.0593 
-## F-statistic: 2.198 on 2 and 36 DF,  p-value: 0.1257
+## Residual standard error: 0.7656 on 35 degrees of freedom
+## Multiple R-squared:  0.157,  Adjusted R-squared:  0.08472 
+## F-statistic: 2.173 on 3 and 35 DF,  p-value: 0.1087
 ## 
 ## 
 ## $temperament_avoidability
@@ -2566,20 +2570,21 @@ summary_all</code></pre>
 ## lm(formula = formula, data = cbcp_bh_sup)
 ## 
 ## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -1.40156 -0.71238 -0.04123  0.49572  2.65647 
+##     Min      1Q  Median      3Q     Max 
+## -1.4753 -0.6406 -0.1397  0.5485  2.7996 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  3.03667    0.16362  18.559   &lt;2e-16 ***
-## scores[, 1] -0.13515    0.05549  -2.435    0.020 *  
-## scores[, 2] -0.04152    0.07577  -0.548    0.587    
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              3.03667    0.16390  18.527   &lt;2e-16 ***
+## scores[, 1]             -0.13433    0.05560  -2.416    0.021 *  
+## scores[, 2]             -0.02886    0.07710  -0.374    0.710    
+## scores[, 1]:scores[, 2]  0.02053    0.02193   0.936    0.356    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.022 on 36 degrees of freedom
-## Multiple R-squared:  0.1476, Adjusted R-squared:  0.1002 
-## F-statistic: 3.116 on 2 and 36 DF,  p-value: 0.05649
+## Residual standard error: 1.024 on 35 degrees of freedom
+## Multiple R-squared:  0.1684, Adjusted R-squared:  0.09709 
+## F-statistic: 2.362 on 3 and 35 DF,  p-value: 0.08799
 ## 
 ## 
 ## $temperament_adaptability
@@ -2589,19 +2594,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.90790 -0.61440 -0.06297  0.52279  1.72872 
+## -0.99915 -0.55604 -0.05429  0.52806  1.85323 
 ## 
 ## Coefficients:
-##               Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  2.6241026  0.1143446  22.949  &lt; 2e-16 ***
-## scores[, 1] -0.1081673  0.0387804  -2.789  0.00839 ** 
-## scores[, 2]  0.0006309  0.0529490   0.012  0.99056    
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              2.62410    0.11375  23.068  &lt; 2e-16 ***
+## scores[, 1]             -0.10745    0.03858  -2.785  0.00859 ** 
+## scores[, 2]              0.01165    0.05351   0.218  0.82895    
+## scores[, 1]:scores[, 2]  0.01785    0.01522   1.173  0.24877    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.7141 on 36 degrees of freedom
-## Multiple R-squared:  0.1777, Adjusted R-squared:  0.132 
-## F-statistic:  3.89 on 2 and 36 DF,  p-value: 0.02955
+## Residual standard error: 0.7104 on 35 degrees of freedom
+## Multiple R-squared:  0.2088, Adjusted R-squared:  0.141 
+## F-statistic: 3.079 on 3 and 35 DF,  p-value: 0.04001
 ## 
 ## 
 ## $temperament_reactivity
@@ -2610,20 +2616,21 @@ summary_all</code></pre>
 ## lm(formula = formula, data = cbcp_bh_sup)
 ## 
 ## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -1.76142 -0.49667  0.08616  0.31599  1.48801 
+##     Min      1Q  Median      3Q     Max 
+## -1.7645 -0.4954  0.0770  0.3322  1.4845 
 ## 
 ## Coefficients:
-##               Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  3.8241026  0.1246320  30.683   &lt;2e-16 ***
-## scores[, 1] -0.0872277  0.0422694  -2.064   0.0463 *  
-## scores[, 2] -0.0005437  0.0577128  -0.009   0.9925    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              3.824103   0.126261  30.287   &lt;2e-16 ***
+## scores[, 1]             -0.087039   0.042827  -2.032   0.0498 *  
+## scores[, 2]              0.002353   0.059389   0.040   0.9686    
+## scores[, 1]:scores[, 2]  0.004695   0.016896   0.278   0.7828    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.7783 on 36 degrees of freedom
-## Multiple R-squared:  0.1058, Adjusted R-squared:  0.0561 
-## F-statistic: 2.129 on 2 and 36 DF,  p-value: 0.1337
+## Residual standard error: 0.7885 on 35 degrees of freedom
+## Multiple R-squared:  0.1077, Adjusted R-squared:  0.03127 
+## F-statistic: 1.409 on 3 and 35 DF,  p-value: 0.2565
 ## 
 ## 
 ## $temperament_mind
@@ -2632,20 +2639,21 @@ summary_all</code></pre>
 ## lm(formula = formula, data = cbcp_bh_sup)
 ## 
 ## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -1.06481 -0.31639 -0.06891  0.29210  1.05462 
+##     Min      1Q  Median      3Q     Max 
+## -0.8130 -0.3394 -0.1158  0.2425  1.1196 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  3.05744    0.08357  36.586  &lt; 2e-16 ***
-## scores[, 1] -0.13614    0.02834  -4.803 2.74e-05 ***
-## scores[, 2] -0.01055    0.03870  -0.273    0.787    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              3.057436   0.076360  40.040  &lt; 2e-16 ***
+## scores[, 1]             -0.134966   0.025901  -5.211 8.48e-06 ***
+## scores[, 2]              0.007409   0.035917   0.206   0.8378    
+## scores[, 1]:scores[, 2]  0.029113   0.010219   2.849   0.0073 ** 
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.5219 on 36 degrees of freedom
-## Multiple R-squared:  0.3913, Adjusted R-squared:  0.3575 
-## F-statistic: 11.57 on 2 and 36 DF,  p-value: 0.0001315
+## Residual standard error: 0.4769 on 35 degrees of freedom
+## Multiple R-squared:  0.5059, Adjusted R-squared:  0.4636 
+## F-statistic: 11.95 on 3 and 35 DF,  p-value: 1.54e-05
 ## 
 ## 
 ## $temperament_substantivity
@@ -2655,19 +2663,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -2.00221 -0.15998  0.09606  0.34630  1.04178 
+## -1.99615 -0.27128  0.05475  0.29973  1.15364 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  3.79718    0.09092  41.764   &lt;2e-16 ***
-## scores[, 1] -0.02003    0.03084  -0.650    0.520    
-## scores[, 2]  0.04103    0.04210   0.975    0.336    
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              3.79718    0.08827  43.017   &lt;2e-16 ***
+## scores[, 1]             -0.01918    0.02994  -0.641   0.5259    
+## scores[, 2]              0.05406    0.04152   1.302   0.2015    
+## scores[, 1]:scores[, 2]  0.02111    0.01181   1.787   0.0827 .  
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.5678 on 36 degrees of freedom
-## Multiple R-squared:  0.03671,    Adjusted R-squared:  -0.0168 
-## F-statistic: 0.686 on 2 and 36 DF,  p-value: 0.5101
+## Residual standard error: 0.5513 on 35 degrees of freedom
+## Multiple R-squared:  0.1172, Adjusted R-squared:  0.04156 
+## F-statistic: 1.549 on 3 and 35 DF,  p-value: 0.2191
 ## 
 ## 
 ## $temperament_distraction
@@ -2677,19 +2686,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.71943 -0.39879 -0.08101  0.29036  1.00173 
+## -0.75908 -0.33738 -0.06807  0.28385  0.99484 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  3.147949   0.077512  40.612   &lt;2e-16 ***
-## scores[, 1] -0.075648   0.026289  -2.878   0.0067 ** 
-## scores[, 2]  0.006415   0.035893   0.179   0.8591    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              3.147949   0.077764  40.481  &lt; 2e-16 ***
+## scores[, 1]             -0.075281   0.026377  -2.854  0.00721 ** 
+## scores[, 2]              0.012041   0.036578   0.329  0.74398    
+## scores[, 1]:scores[, 2]  0.009118   0.010406   0.876  0.38690    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.4841 on 36 degrees of freedom
-## Multiple R-squared:  0.1876, Adjusted R-squared:  0.1425 
-## F-statistic: 4.156 on 2 and 36 DF,  p-value: 0.02377
+## Residual standard error: 0.4856 on 35 degrees of freedom
+## Multiple R-squared:  0.205,  Adjusted R-squared:  0.1369 
+## F-statistic: 3.009 on 3 and 35 DF,  p-value: 0.04317
 ## 
 ## 
 ## $temperament_threshold
@@ -2698,20 +2708,21 @@ summary_all</code></pre>
 ## lm(formula = formula, data = cbcp_bh_sup)
 ## 
 ## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -1.4535 -0.7709  0.0475  0.6713  1.6542 
+##      Min       1Q   Median       3Q      Max 
+## -1.43331 -0.68931  0.02982  0.63560  1.62552 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  4.72436    0.14080  33.555   &lt;2e-16 ***
-## scores[, 1] -0.02761    0.04775  -0.578   0.5668    
-## scores[, 2] -0.13326    0.06520  -2.044   0.0483 *  
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              4.724359   0.142295  33.201   &lt;2e-16 ***
+## scores[, 1]             -0.027986   0.048266  -0.580   0.5658    
+## scores[, 2]             -0.139083   0.066931  -2.078   0.0451 *  
+## scores[, 1]:scores[, 2] -0.009429   0.019042  -0.495   0.6236    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.8793 on 36 degrees of freedom
-## Multiple R-squared:  0.1114, Adjusted R-squared:  0.06201 
-## F-statistic: 2.256 on 2 and 36 DF,  p-value: 0.1194
+## Residual standard error: 0.8886 on 35 degrees of freedom
+## Multiple R-squared:  0.1176, Adjusted R-squared:  0.04192 
+## F-statistic: 1.554 on 3 and 35 DF,  p-value: 0.2178
 ## 
 ## 
 ## $SEAM_interpersonal
@@ -2721,19 +2732,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -1.6671 -0.5699 -0.2817  0.3369  4.2994 
+## -2.1121 -0.5447 -0.0413  0.3607  4.2945 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  5.67568    0.18654  30.425  &lt; 2e-16 ***
-## scores[, 1] -0.12154    0.06327  -1.921  0.06267 .  
-## scores[, 2]  0.27983    0.08638   3.239  0.00258 ** 
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              5.67568    0.18594  30.525  &lt; 2e-16 ***
+## scores[, 1]             -0.12265    0.06307  -1.945  0.05987 .  
+## scores[, 2]              0.26276    0.08746   3.004  0.00489 ** 
+## scores[, 1]:scores[, 2] -0.02767    0.02488  -1.112  0.27374    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.165 on 36 degrees of freedom
-## Multiple R-squared:  0.2826, Adjusted R-squared:  0.2428 
-## F-statistic: 7.092 on 2 and 36 DF,  p-value: 0.002531
+## Residual standard error: 1.161 on 35 degrees of freedom
+## Multiple R-squared:  0.3071, Adjusted R-squared:  0.2477 
+## F-statistic: 5.171 on 3 and 35 DF,  p-value: 0.0046
 ## 
 ## 
 ## $SEAM_emotionexpression
@@ -2743,19 +2755,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -1.6383 -0.9074 -0.3709  0.4218  6.3538 
+## -1.6401 -0.9050 -0.3764  0.4056  6.3536 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  4.97297    0.25993  19.132   &lt;2e-16 ***
-## scores[, 1] -0.11407    0.08816  -1.294    0.204    
-## scores[, 2]  0.17709    0.12036   1.471    0.150    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              4.972973   0.263609  18.865   &lt;2e-16 ***
+## scores[, 1]             -0.114121   0.089415  -1.276    0.210    
+## scores[, 2]              0.176261   0.123993   1.422    0.164    
+## scores[, 1]:scores[, 2] -0.001346   0.035277  -0.038    0.970    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.623 on 36 degrees of freedom
-## Multiple R-squared:  0.09636,    Adjusted R-squared:  0.04616 
-## F-statistic:  1.92 on 2 and 36 DF,  p-value: 0.1614
+## Residual standard error: 1.646 on 35 degrees of freedom
+## Multiple R-squared:  0.0964, Adjusted R-squared:  0.01895 
+## F-statistic: 1.245 on 3 and 35 DF,  p-value: 0.3083
 ## 
 ## 
 ## $SEAM_emotionregulation
@@ -2765,19 +2778,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -2.9391 -1.1367  0.0976  0.8259  4.3127 
+## -2.9297 -1.1198  0.0468  0.9139  4.2510 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)   6.1351     0.2968  20.669  &lt; 2e-16 ***
-## scores[, 1]  -0.2856     0.1007  -2.837  0.00744 ** 
-## scores[, 2]   0.1653     0.1375   1.203  0.23695    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              6.135135   0.300902  20.389  &lt; 2e-16 ***
+## scores[, 1]             -0.285276   0.102065  -2.795  0.00837 ** 
+## scores[, 2]              0.169789   0.141535   1.200  0.23834    
+## scores[, 1]:scores[, 2]  0.007259   0.040267   0.180  0.85797    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.854 on 36 degrees of freedom
-## Multiple R-squared:  0.2087, Adjusted R-squared:  0.1647 
-## F-statistic: 4.746 on 2 and 36 DF,  p-value: 0.01481
+## Residual standard error: 1.879 on 35 degrees of freedom
+## Multiple R-squared:  0.2094, Adjusted R-squared:  0.1416 
+## F-statistic:  3.09 on 3 and 35 DF,  p-value: 0.03953
 ## 
 ## 
 ## $SEAM_empathy
@@ -2787,19 +2801,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -1.5809 -0.6388 -0.2003  0.6229  2.7758 
+## -1.5739 -0.6363 -0.2147  0.6517  2.7662 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  3.02703    0.16687  18.141  &lt; 2e-16 ***
-## scores[, 1] -0.17239    0.05659  -3.046  0.00432 ** 
-## scores[, 2]  0.09958    0.07727   1.289  0.20573    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              3.027027   0.169202  17.890  &lt; 2e-16 ***
+## scores[, 1]             -0.172292   0.057393  -3.002  0.00492 ** 
+## scores[, 2]              0.101134   0.079587   1.271  0.21220    
+## scores[, 1]:scores[, 2]  0.002525   0.022643   0.112  0.91183    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.042 on 36 degrees of freedom
-## Multiple R-squared:  0.2331, Adjusted R-squared:  0.1905 
-## F-statistic:  5.47 on 2 and 36 DF,  p-value: 0.008427
+## Residual standard error: 1.057 on 35 degrees of freedom
+## Multiple R-squared:  0.2333, Adjusted R-squared:  0.1676 
+## F-statistic: 3.551 on 3 and 35 DF,  p-value: 0.02411
 ## 
 ## 
 ## $SEAM_participation
@@ -2809,19 +2824,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -2.5919 -1.1866 -0.5118  1.0080  3.5613 
+## -2.6758 -1.1591 -0.5703  0.6977  3.2538 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  5.56757    0.26792  20.781  &lt; 2e-16 ***
-## scores[, 1] -0.26573    0.09087  -2.924  0.00594 ** 
-## scores[, 2]  0.26066    0.12407   2.101  0.04271 *  
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              5.56757    0.26900  20.697   &lt;2e-16 ***
+## scores[, 1]             -0.26696    0.09124  -2.926   0.0060 ** 
+## scores[, 2]              0.24191    0.12653   1.912   0.0641 .  
+## scores[, 1]:scores[, 2] -0.03039    0.03600  -0.844   0.4043    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.673 on 36 degrees of freedom
-## Multiple R-squared:  0.2648, Adjusted R-squared:  0.224 
-## F-statistic: 6.483 on 2 and 36 DF,  p-value: 0.003938
+## Residual standard error: 1.68 on 35 degrees of freedom
+## Multiple R-squared:  0.2795, Adjusted R-squared:  0.2177 
+## F-statistic: 4.525 on 3 and 35 DF,  p-value: 0.008767
 ## 
 ## 
 ## $SEAM_independence
@@ -2831,19 +2847,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -2.2320 -1.2933 -0.4649  0.4436  5.2672 
+## -2.2200 -1.2632 -0.4799  0.4394  5.2818 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  5.59459    0.30997  18.049   &lt;2e-16 ***
-## scores[, 1] -0.22318    0.10513  -2.123   0.0407 *  
-## scores[, 2]  0.07889    0.14354   0.550   0.5860    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              5.594595   0.314320  17.799   &lt;2e-16 ***
+## scores[, 1]             -0.223004   0.106616  -2.092   0.0438 *  
+## scores[, 2]              0.081574   0.147846   0.552   0.5846    
+## scores[, 1]:scores[, 2]  0.004343   0.042063   0.103   0.9184    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.936 on 36 degrees of freedom
-## Multiple R-squared:  0.1178, Adjusted R-squared:  0.06883 
-## F-statistic: 2.404 on 2 and 36 DF,  p-value: 0.1047
+## Residual standard error: 1.963 on 35 degrees of freedom
+## Multiple R-squared:  0.1181, Adjusted R-squared:  0.04252 
+## F-statistic: 1.562 on 3 and 35 DF,  p-value: 0.2158
 ## 
 ## 
 ## $SEAM_selfimage
@@ -2853,19 +2870,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.81316 -0.33328 -0.20061  0.05813  2.63839 
+## -0.96036 -0.27468 -0.16956  0.07171  2.63819 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  3.29730    0.10398  31.712   &lt;2e-16 ***
-## scores[, 1] -0.06520    0.03526  -1.849   0.0727 .  
-## scores[, 2]  0.07812    0.04815   1.623   0.1134    
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              3.29730    0.10384  31.755   &lt;2e-16 ***
+## scores[, 1]             -0.06578    0.03522  -1.868   0.0702 .  
+## scores[, 2]              0.06915    0.04884   1.416   0.1657    
+## scores[, 1]:scores[, 2] -0.01455    0.01390  -1.047   0.3023    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.6493 on 36 degrees of freedom
-## Multiple R-squared:  0.1439, Adjusted R-squared:  0.09634 
-## F-statistic: 3.026 on 2 and 36 DF,  p-value: 0.06102
+## Residual standard error: 0.6485 on 35 degrees of freedom
+## Multiple R-squared:  0.1699, Adjusted R-squared:  0.09874 
+## F-statistic: 2.388 on 3 and 35 DF,  p-value: 0.08552
 ## 
 ## 
 ## $SEAM_attention
@@ -2875,19 +2893,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -1.6895 -1.0923 -0.5155  0.4340  3.8741 
+## -1.8886 -1.0785 -0.5380  0.3654  3.8745 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  6.081081   0.257358  23.629   &lt;2e-16 ***
-## scores[, 1] -0.071944   0.087284  -0.824    0.415    
-## scores[, 2]  0.007677   0.119173   0.064    0.949    
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              6.08108    0.25896  23.483   &lt;2e-16 ***
+## scores[, 1]             -0.07091    0.08784  -0.807    0.425    
+## scores[, 2]              0.02361    0.12181   0.194    0.847    
+## scores[, 1]:scores[, 2]  0.02583    0.03465   0.745    0.461    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.607 on 36 degrees of freedom
-## Multiple R-squared:  0.01863,    Adjusted R-squared:  -0.03589 
-## F-statistic: 0.3418 on 2 and 36 DF,  p-value: 0.7128
+## Residual standard error: 1.617 on 35 degrees of freedom
+## Multiple R-squared:  0.03397,    Adjusted R-squared:  -0.04884 
+## F-statistic: 0.4102 on 3 and 35 DF,  p-value: 0.7467
 ## 
 ## 
 ## $SEAM_cooperation
@@ -2897,19 +2916,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -1.7415 -1.1689 -0.5948  0.7788  5.1855 
+## -1.7690 -1.0701 -0.5200  0.6298  5.2052 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  4.21622    0.26738  15.769   &lt;2e-16 ***
-## scores[, 1] -0.11771    0.09068  -1.298    0.203    
-## scores[, 2]  0.13257    0.12382   1.071    0.291    
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              4.21622    0.26917  15.663   &lt;2e-16 ***
+## scores[, 1]             -0.11876    0.09130  -1.301    0.202    
+## scores[, 2]              0.11651    0.12661   0.920    0.364    
+## scores[, 1]:scores[, 2] -0.02602    0.03602  -0.722    0.475    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.67 on 36 degrees of freedom
-## Multiple R-squared:  0.07291,    Adjusted R-squared:  0.02141 
-## F-statistic: 1.416 on 2 and 36 DF,  p-value: 0.256
+## Residual standard error: 1.681 on 35 degrees of freedom
+## Multiple R-squared:  0.08653,    Adjusted R-squared:  0.008237 
+## F-statistic: 1.105 on 3 and 35 DF,  p-value: 0.3601
 ## 
 ## 
 ## $SEAM_adaptability
@@ -2918,20 +2938,21 @@ summary_all</code></pre>
 ## lm(formula = formula, data = cbcp_bh_sup)
 ## 
 ## Residuals:
-##    Min     1Q Median     3Q    Max 
-## -3.023 -1.511 -0.300  1.424  3.934 
+##     Min      1Q  Median      3Q     Max 
+## -3.3044 -1.4902 -0.2643  1.5306  3.9553 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)   9.1081     0.3042  29.938   &lt;2e-16 ***
-## scores[, 1]  -0.3014     0.1032  -2.921   0.0060 ** 
-## scores[, 2]   0.2440     0.1409   1.732   0.0918 .  
+##                         Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              9.10811    0.30654  29.712  &lt; 2e-16 ***
+## scores[, 1]             -0.30247    0.10398  -2.909  0.00626 ** 
+## scores[, 2]              0.22687    0.14419   1.573  0.12462    
+## scores[, 1]:scores[, 2] -0.02778    0.04102  -0.677  0.50281    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 1.9 on 36 degrees of freedom
-## Multiple R-squared:  0.2426, Adjusted R-squared:  0.2005 
-## F-statistic: 5.765 on 2 and 36 DF,  p-value: 0.00673
+## Residual standard error: 1.914 on 35 degrees of freedom
+## Multiple R-squared:  0.2524, Adjusted R-squared:  0.1883 
+## F-statistic: 3.938 on 3 and 35 DF,  p-value: 0.01603
 ## 
 ## 
 ## $CBCL1648_hyperactivity
@@ -2941,19 +2962,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.75496 -0.04635  0.00116  0.05815  1.23252 
+## -0.75643 -0.04901 -0.00838  0.05645  1.23056 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  0.75000    0.04404  17.028   &lt;2e-16 ***
-## scores[, 1]  0.01460    0.01494   0.977    0.335    
-## scores[, 2]  0.02086    0.02040   1.023    0.313    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              0.750000   0.044528  16.843   &lt;2e-16 ***
+## scores[, 1]              0.014483   0.015104   0.959    0.344    
+## scores[, 2]              0.019118   0.020944   0.913    0.368    
+## scores[, 1]:scores[, 2] -0.002815   0.005959  -0.472    0.640    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.2751 on 36 degrees of freedom
-## Multiple R-squared:  0.05264,    Adjusted R-squared:  9.952e-06 
-## F-statistic:     1 on 2 and 36 DF,  p-value: 0.3778
+## Residual standard error: 0.2781 on 35 degrees of freedom
+## Multiple R-squared:  0.05864,    Adjusted R-squared:  -0.02204 
+## F-statistic: 0.7268 on 3 and 35 DF,  p-value: 0.5429
 ## 
 ## 
 ## $CBCL1648_delayedgratification
@@ -2963,19 +2985,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.50479 -0.04798  0.00104  0.02471  1.16821 
+## -0.50643 -0.04665 -0.01015  0.02605  1.16603 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  0.500000   0.036637  13.647 8.46e-16 ***
-## scores[, 1] -0.002786   0.012426  -0.224    0.824    
-## scores[, 2] -0.019392   0.016965  -1.143    0.261    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              0.500000   0.036943  13.534  1.8e-15 ***
+## scores[, 1]             -0.002912   0.012531  -0.232    0.818    
+## scores[, 2]             -0.021336   0.017377  -1.228    0.228    
+## scores[, 1]:scores[, 2] -0.003152   0.004944  -0.638    0.528    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.2288 on 36 degrees of freedom
-## Multiple R-squared:  0.03632,    Adjusted R-squared:  -0.01722 
-## F-statistic: 0.6784 on 2 and 36 DF,  p-value: 0.5138
+## Residual standard error: 0.2307 on 35 degrees of freedom
+## Multiple R-squared:  0.04738,    Adjusted R-squared:  -0.03427 
+## F-statistic: 0.5803 on 3 and 35 DF,  p-value: 0.6319
 ## 
 ## 
 ## $CBCL1648_shyness
@@ -2985,19 +3008,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.53663 -0.08630 -0.00174  0.06883  0.80673 
+## -0.53706 -0.08618 -0.00171  0.06992  0.80441 
 ## 
 ## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  0.60000    0.03276  18.313   &lt;2e-16 ***
-## scores[, 1] -0.02167    0.01111  -1.950   0.0590 .  
-## scores[, 2] -0.03090    0.01517  -2.037   0.0491 *  
+##                           Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              0.6000000  0.0332279  18.057   &lt;2e-16 ***
+## scores[, 1]             -0.0216579  0.0112708  -1.922   0.0628 .  
+## scores[, 2]             -0.0307804  0.0156293  -1.969   0.0569 .  
+## scores[, 1]:scores[, 2]  0.0001963  0.0044466   0.044   0.9650    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.2046 on 36 degrees of freedom
-## Multiple R-squared:  0.1809, Adjusted R-squared:  0.1354 
-## F-statistic: 3.975 on 2 and 36 DF,  p-value: 0.02755
+## Residual standard error: 0.2075 on 35 degrees of freedom
+## Multiple R-squared:  0.1809, Adjusted R-squared:  0.1107 
+## F-statistic: 2.577 on 3 and 35 DF,  p-value: 0.06931
 ## 
 ## 
 ## $CBCL1648_depression
@@ -3007,19 +3031,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##       Min        1Q    Median        3Q       Max 
-## -0.216938 -0.029058  0.001763  0.025900  0.259521 
+## -0.216275 -0.030034  0.000355  0.026511  0.263135 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  0.240000   0.011541  20.795   &lt;2e-16 ***
-## scores[, 1] -0.007472   0.003914  -1.909   0.0643 .  
-## scores[, 2] -0.011875   0.005344  -2.222   0.0327 *  
+##                           Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              0.2400000  0.0116988  20.515   &lt;2e-16 ***
+## scores[, 1]             -0.0074846  0.0039682  -1.886   0.0676 .  
+## scores[, 2]             -0.0120633  0.0055028  -2.192   0.0351 *  
+## scores[, 1]:scores[, 2] -0.0003055  0.0015656  -0.195   0.8464    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.07208 on 36 degrees of freedom
-## Multiple R-squared:  0.1925, Adjusted R-squared:  0.1476 
-## F-statistic: 4.291 on 2 and 36 DF,  p-value: 0.02132
+## Residual standard error: 0.07306 on 35 degrees of freedom
+## Multiple R-squared:  0.1934, Adjusted R-squared:  0.1242 
+## F-statistic: 2.797 on 3 and 35 DF,  p-value: 0.05443
 ## 
 ## 
 ## $CBCL1648_aggression
@@ -3029,19 +3054,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.20802 -0.02017  0.00076  0.01324  0.31957 
+## -0.18138 -0.02191 -0.00507  0.01511  0.31844 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  0.253333   0.011889  21.308   &lt;2e-16 ***
-## scores[, 1] -0.003366   0.004032  -0.835    0.409    
-## scores[, 2] -0.008201   0.005505  -1.490    0.145    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              0.253333   0.011881  21.323   &lt;2e-16 ***
+## scores[, 1]             -0.003431   0.004030  -0.851    0.400    
+## scores[, 2]             -0.009206   0.005588  -1.647    0.108    
+## scores[, 1]:scores[, 2] -0.001629   0.001590  -1.025    0.313    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.07425 on 36 degrees of freedom
-## Multiple R-squared:  0.07492,    Adjusted R-squared:  0.02353 
-## F-statistic: 1.458 on 2 and 36 DF,  p-value: 0.2462
+## Residual standard error: 0.0742 on 35 degrees of freedom
+## Multiple R-squared:  0.1019, Adjusted R-squared:  0.02488 
+## F-statistic: 1.323 on 3 and 35 DF,  p-value: 0.2824
 ## 
 ## 
 ## $CBCL1648_apathy
@@ -3051,19 +3077,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.20001 -0.02793 -0.00526  0.02088  0.53440 
+## -0.20021 -0.02672 -0.00538  0.01983  0.53389 
 ## 
 ## Coefficients:
-##               Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  0.2083333  0.0192153  10.842 6.86e-13 ***
-## scores[, 1] -0.0099445  0.0065169  -1.526    0.136    
-## scores[, 2] -0.0009313  0.0088979  -0.105    0.917    
+##                           Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              0.2083333  0.0194816  10.694 1.42e-12 ***
+## scores[, 1]             -0.0099603  0.0066081  -1.507    0.141    
+## scores[, 2]             -0.0011734  0.0091635  -0.128    0.899    
+## scores[, 1]:scores[, 2] -0.0003925  0.0026071  -0.151    0.881    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.12 on 36 degrees of freedom
-## Multiple R-squared:  0.06102,    Adjusted R-squared:  0.008854 
-## F-statistic:  1.17 on 2 and 36 DF,  p-value: 0.322
+## Residual standard error: 0.1217 on 35 degrees of freedom
+## Multiple R-squared:  0.06163,    Adjusted R-squared:  -0.0188 
+## F-statistic: 0.7662 on 3 and 35 DF,  p-value: 0.5207
 ## 
 ## 
 ## $CBCL46_aggression
@@ -3073,19 +3100,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.24649 -0.09471 -0.01760  0.07331  0.30327 
+## -0.25161 -0.08849 -0.02114  0.07573  0.30286 
 ## 
 ## Coefficients:
-##               Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  0.2103125  0.0224434   9.371 3.42e-11 ***
-## scores[, 1] -0.0202271  0.0076118  -2.657   0.0117 *  
-## scores[, 2] -0.0009832  0.0103927  -0.095   0.9252    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              0.210313   0.022499   9.348 4.81e-11 ***
+## scores[, 1]             -0.020337   0.007632  -2.665   0.0116 *  
+## scores[, 2]             -0.002667   0.010583  -0.252   0.8025    
+## scores[, 1]:scores[, 2] -0.002730   0.003011  -0.907   0.3708    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.1402 on 36 degrees of freedom
-## Multiple R-squared:  0.1642, Adjusted R-squared:  0.1177 
-## F-statistic: 3.535 on 2 and 36 DF,  p-value: 0.03965
+## Residual standard error: 0.1405 on 35 degrees of freedom
+## Multiple R-squared:  0.1833, Adjusted R-squared:  0.1133 
+## F-statistic: 2.619 on 3 and 35 DF,  p-value: 0.06617
 ## 
 ## 
 ## $CBCL46_depression
@@ -3095,19 +3123,20 @@ summary_all</code></pre>
 ## 
 ## Residuals:
 ##      Min       1Q   Median       3Q      Max 
-## -0.12367 -0.07685 -0.02526  0.05463  0.33507 
+## -0.12059 -0.07774 -0.02436  0.05853  0.33715 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  0.081563   0.016822   4.849 2.38e-05 ***
-## scores[, 1] -0.009054   0.005705  -1.587    0.121    
-## scores[, 2] -0.003268   0.007789  -0.420    0.677    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              0.081562   0.017054   4.783 3.09e-05 ***
+## scores[, 1]             -0.009069   0.005785  -1.568    0.126    
+## scores[, 2]             -0.003492   0.008022  -0.435    0.666    
+## scores[, 1]:scores[, 2] -0.000363   0.002282  -0.159    0.875    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.1051 on 36 degrees of freedom
-## Multiple R-squared:  0.06964,    Adjusted R-squared:  0.01796 
-## F-statistic: 1.347 on 2 and 36 DF,  p-value: 0.2727
+## Residual standard error: 0.1065 on 35 degrees of freedom
+## Multiple R-squared:  0.07032,    Adjusted R-squared:  -0.009372 
+## F-statistic: 0.8824 on 3 and 35 DF,  p-value: 0.4597
 ## 
 ## 
 ## $CBCL46_socialavoidance
@@ -3116,20 +3145,21 @@ summary_all</code></pre>
 ## lm(formula = formula, data = cbcp_bh_sup)
 ## 
 ## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.24139 -0.15399 -0.00289  0.07669  0.64377 
+##     Min      1Q  Median      3Q     Max 
+## -0.2512 -0.1539 -0.0036  0.0538  0.6442 
 ## 
 ## Coefficients:
-##              Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  0.175000   0.033398   5.240  7.2e-06 ***
-## scores[, 1] -0.015418   0.011327  -1.361    0.182    
-## scores[, 2] -0.008579   0.015465  -0.555    0.582    
+##                          Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)              0.175000   0.033708   5.192 8.99e-06 ***
+## scores[, 1]             -0.015312   0.011434  -1.339    0.189    
+## scores[, 2]             -0.006959   0.015855  -0.439    0.663    
+## scores[, 1]:scores[, 2]  0.002627   0.004511   0.582    0.564    
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Residual standard error: 0.2086 on 36 degrees of freedom
-## Multiple R-squared:  0.05662,    Adjusted R-squared:  0.004209 
-## F-statistic:  1.08 on 2 and 36 DF,  p-value: 0.3502</code></pre>
+## Residual standard error: 0.2105 on 35 degrees of freedom
+## Multiple R-squared:  0.06567,    Adjusted R-squared:  -0.01441 
+## F-statistic:  0.82 on 3 and 35 DF,  p-value: 0.4916</code></pre>
 <p>The results show that PC1 and PC2 significantly predict the following
 outcomes: temperament_adaptability (p = 0.02955), temperament_mind (p =
 0.0001315), temperament_distraction (p = 0.02377), SEAM_interpersonal (p
@@ -3138,7 +3168,14 @@ outcomes: temperament_adaptability (p = 0.02955), temperament_mind (p =
 0.00673), CBCL1648_shyness (p = 0.02755), CBCL1648_depression (p =
 0.02132), CBCL46_aggression (p = 0.03965).</p>
 <blockquote>
-<p>This is really interesting!</p>
+<p>This is really interesting! Chirstian mentioned other methods to deal
+with datasets like this, such as regularization and SSVS. I’ll look into
+them in my future portfolio pieces.</p>
+</blockquote>
+<blockquote>
+<p>Below is something I’m currently exploring. It might be predecessors
+of my next portfolio pieces or not. I’m not sure. It’s not fully cooked.
+Just ignore this part.</p>
 </blockquote>
 <pre class="r"><code>cbcp_bh_sup$PC1 &lt;- scores[, 1]
 cbcp_bh_sup$PC2 &lt;- scores[, 2]

@@ -2,4 +2,222 @@
 title: "Portfolio 5"
 ---
 
-> The projects should be numbered consecutively (i.e., in the order in which you began them), and should include for each project a description of the goal, the product (computer program, hand graph, computer graph, etc.), the data, and some interpretation. Reports must be reproducible and of high quality in terms of writing, grammar, presentation, etc.
+> This project aims to create the inter-response time plot for my first year project, using codes I created in Portfolio 3. Because it is a lot of work, here is another project.
+
+### 0. Prep.
+```{r read-in-data}
+library(readxl)
+library(tidyverse)
+
+IM_DD1_ArrayC <- read_excel("data/fyp/IM_DD1_ArrayC_IncludesILandTest.xlsx")
+IM_DD2_ArrayC <- read_excel("data/fyp/IM_DD2_ArrayC_IncludesILandTest.xlsx")
+IM_DD3_ArrayC <- read_excel("data/fyp/IM_DD3_ArrayC_IncludesILandTest.xlsx")
+IM_DD4_ArrayC <- read_excel("data/fyp/IM_DD4_ArrayC_IncludesILandTest.xlsx")
+IM_DD5_ArrayC <- read_excel("data/fyp/IM_DD5_ArrayC_IncludesILandTest.xlsx")
+```
+
+```{r combine-clean-data}
+IM_DD1_ArrayC$Day <- "DD1"
+IM_DD2_ArrayC$Day <- "DD2"
+IM_DD3_ArrayC$Day <- "DD3"
+IM_DD4_ArrayC$Day <- "DD4"
+IM_DD5_ArrayC$Day <- "DD5"
+
+# combine Carray data from all five days
+IM_Carray_all <- bind_rows(IM_DD1_ArrayC, IM_DD2_ArrayC, IM_DD3_ArrayC, IM_DD4_ArrayC, IM_DD5_ArrayC)
+
+# data cleaning
+#clean the rows
+table(IM_Carray_all$Subject) 
+
+#155 rows are the header, need to filter them out
+IM_Carray <- IM_Carray_all %>%
+  filter(!(Subject %in% "Subject"))
+
+#790 rows are chamber testing programs, need to filter them out
+IM_Carray <- IM_Carray %>%
+  filter(Subject != 0)
+
+as_tibble(IM_Carray)
+
+#check again 
+table(IM_Carray$Subject) 
+
+# On one day, we accidentally labeled IM9-12 as IL9-12. So we need to find the day and fix the data.
+# check which day is the problematic one
+table(IM_Carray$Subject, IM_Carray$Day)
+# There is no data for IM9-12 on DD4, so we must have done it wrong on this day.
+
+IM_Carray %>%
+  filter(Day == "DD4") %>%
+  with(table(Subject, Drug))
+
+# From the table, we can see that IM9 (which was typed in as IL9) got VEH, IM10 got S_LO, IM11 got S_LO, and IM12 got VEH, which is consistent with what we have in the injection schedule. So now, we need to change the subject name to the right names, and filter out IL's data.
+IM_Carray <- IM_Carray %>%
+  filter(Drug != 0) %>%
+  mutate(Subject = ifelse(Subject == "IL9", "IM9", Subject))
+IM_Carray <- IM_Carray %>%
+  filter(Drug != 0) %>%
+  mutate(Subject = ifelse(Subject == "IL10", "IM10", Subject))
+IM_Carray <- IM_Carray %>%
+  filter(Drug != 0) %>%
+  mutate(Subject = ifelse(Subject == "IL11", "IM11", Subject))
+IM_Carray <- IM_Carray %>%
+  filter(Drug != 0) %>%
+  mutate(Subject = ifelse(Subject == "IL12", "IM12", Subject))
+
+#check again 
+table(IM_Carray$Subject) # so we only have IM's data now
+
+table(IM_Carray$Experiment)
+table(IM_Carray$Subject, IM_Carray$Drug)
+
+#So now we need to change the drug name to be consistent
+IM_Carray$Drug <- ifelse(IM_Carray$Drug %in% c("M_HI", "MEC_HI", "MEC-HI"), "M_HIGH", IM_Carray$Drug)
+IM_Carray$Drug <- ifelse(IM_Carray$Drug %in% c("M_LO", "MEC_LO", "MEC-LO", "MEC-LOW"), "M_LOW", IM_Carray$Drug)
+IM_Carray$Drug <- ifelse(IM_Carray$Drug %in% c("S_HI", "SCOP_HI", "SCOP-HI"), "S_HIGH", IM_Carray$Drug)
+IM_Carray$Drug <- ifelse(IM_Carray$Drug %in% c("S_LO", "SCOP_LO", "SCOP-LOW", "SCP-LOW", "SCOP-LO"), "S_LOW", IM_Carray$Drug)
+
+# convey Box and Carray to numbers
+IM_Carray$Box <- as.numeric(IM_Carray$Box)
+IM_Carray$Carray <- as.numeric(IM_Carray$Carray)
+
+#calculate the inter-response time
+IM_Carray$time <- round(IM_Carray$Carray)/100 
+IM_Carray$interval <-  c(0, diff(IM_Carray$time))
+IM_Carray$interval <- ifelse(IM_Carray$interval < 0, 0, IM_Carray$interval)
+
+# the data is still a little bit messy, some rows are not inter-response time. I have no idea how to filter them out more efficiently, so here it is.
+messy_index <- which(IM_Carray$Carray == 0)
+
+# Find the first index where the difference is >= 100
+messy_start <- c(1, messy_index[which(diff(messy_index) >= 100) + 1])
+
+exclude_rows <- c()
+for (i in messy_start) {
+  exclude_rows <- c(exclude_rows, i:(i + 10))
+}
+
+IM_Carray_clean <- IM_Carray[-exclude_rows, ]
+IM_Carray_clean <- IM_Carray_clean %>%
+  filter(Subject != "IM10")
+
+table(IM_Carray_clean$Subject, IM_Carray_clean$Drug)
+```
+
+```{r plot}
+# Create bins for intervals with a width of 2
+IM_Carray_clean <- IM_Carray_clean %>%
+  mutate(IntervalBin = floor(interval / 2) * 2)  # Creates bins of width 2
+
+# Calculate frequency of intervals within each bin and drug condition
+frequency_data <- IM_Carray_clean %>%
+  group_by(Drug, IntervalBin) %>%
+  summarise(Frequency = n(), .groups = "drop")
+
+frequency_data <- IM_Carray_clean %>%
+  group_by(Drug, IntervalBin) %>%
+  summarise(Frequency = n(), .groups = "drop") %>%
+  group_by(Drug) %>%
+  mutate(Percentage = Frequency / sum(Frequency) * 100)  # Calculate percentage
+
+# Create the percentage plot
+frequency_data %>%
+  filter(IntervalBin <= 40) %>%
+ggplot(aes(x = IntervalBin, y = Percentage, color = Drug, group = Drug)) +
+  geom_line() +  # Add lines to the plot
+  geom_point() +  # Optionally add points to show the frequency at each bin
+  labs(
+    title = "Inter-response Times Following Acetylcholine Receptor Blockade",
+    x = NULL,
+    y = "Percentage Responses",
+    color = NULL
+  ) +
+  scale_color_manual(
+    values = c("M_HIGH" = "#397DB0", "M_LOW" = "#9DC7DD", "VEH" = "#fbf0d9", 
+               "S_LOW" = "#9ED17B", "S_HIGH" = "#3D9F3C"),  # Custom colors
+    labels = c("M_HIGH" = "Mecamylamine High", 
+               "M_LOW" = "Mecamylamine Low", 
+               "VEH" = "Vehicle", 
+               "S_LOW" = "Scopolamine Low", 
+               "S_HIGH" = "Scopolamine High")
+  ) +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min(frequency_data$IntervalBin), max(frequency_data$IntervalBin), by = 2)) +  # Set x-axis breaks at intervals of 2
+  theme(
+    legend.position = c(1, 1),  # Position the legend at the top-right corner
+    legend.justification = c(1, 1),  # Align the legend to the top-right corner
+    axis.text.x = element_text(size = 11, face = "bold"), 
+    axis.text.y = element_text(size = 15, face = "bold"),  
+    axis.title.y = element_text(face = "bold", size = 15), 
+    plot.title = element_text(hjust = 0.5, size = 15, face = "bold")
+  )
+
+# Create the Frequency plot
+frequency_data %>%
+  filter(IntervalBin <= 40) %>%
+ggplot(aes(x = IntervalBin, y = Frequency, color = Drug, group = Drug)) +
+  geom_line() +  # Add lines to the plot
+  geom_point() +  # Optionally add points to show the frequency at each bin
+  labs(
+    title = "Inter-response Times Following Acetylcholine Receptor Blockade",
+    x = NULL,
+    y = "Total Response Frequency",
+    color = NULL
+  ) +
+  scale_color_manual(
+    values = c("M_HIGH" = "#397DB0", "M_LOW" = "#9DC7DD", "VEH" = "#fbf0d9", 
+               "S_LOW" = "#9ED17B", "S_HIGH" = "#3D9F3C"),  # Custom colors
+    labels = c("M_HIGH" = "Mecamylamine High", 
+               "M_LOW" = "Mecamylamine Low", 
+               "VEH" = "Vehicle", 
+               "S_LOW" = "Scopolamine Low", 
+               "S_HIGH" = "Scopolamine High")
+  ) +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min(frequency_data$IntervalBin), max(frequency_data$IntervalBin), by = 2)) +  # Set x-axis breaks at intervals of 2
+  theme(
+    legend.position = c(1, 1),  # Position the legend at the top-right corner
+    legend.justification = c(1, 1),  # Align the legend to the top-right corner
+    axis.text.x = element_text(size = 11, face = "bold"), 
+    axis.text.y = element_text(size = 15, face = "bold"),  
+    axis.title.y = element_text(face = "bold", size = 15), 
+    plot.title = element_text(hjust = 0.5, size = 15, face = "bold")
+  )
+
+# Create the percentage plot with linetype
+frequency_data %>%
+  filter(IntervalBin <= 40) %>%
+ggplot(aes(x = IntervalBin, y = Percentage, linetype = Drug, group = Drug)) +
+  geom_line() +  # Add lines to the plot
+  geom_point() +  # Optionally add points to show the frequency at each bin
+  labs(
+    title = "Inter-response Times Following Acetylcholine Receptor Blockade",
+    x = NULL,
+    y = "Percentage Responses",
+    linetype = NULL
+  ) +
+  scale_linetype_manual(
+    values = c("M_HIGH" = "solid", 
+               "M_LOW" = "dashed", 
+               "VEH" = "dotted", 
+               "S_LOW" = "dotdash", 
+               "S_HIGH" = "twodash"),
+    labels = c("M_HIGH" = "Mecamylamine High", 
+               "M_LOW" = "Mecamylamine Low", 
+               "VEH" = "Vehicle", 
+               "S_LOW" = "Scopolamine Low", 
+               "S_HIGH" = "Scopolamine High")
+  ) +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min(frequency_data$IntervalBin), max(frequency_data$IntervalBin), by = 2)) +  # Set x-axis breaks at intervals of 2
+  theme(
+    legend.position = c(1, 1),  # Position the legend at the top-right corner
+    legend.justification = c(1, 1),  # Align the legend to the top-right corner
+    axis.text.x = element_text(size = 11, face = "bold"), 
+    axis.text.y = element_text(size = 15, face = "bold"),  
+    axis.title.y = element_text(face = "bold", size = 15), 
+    plot.title = element_text(hjust = 0.5, size = 15, face = "bold")
+  )
+```
+

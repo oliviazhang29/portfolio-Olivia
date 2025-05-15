@@ -2,4 +2,102 @@
 title: "Portfolio 3"
 ---
 
-> The projects should be numbered consecutively (i.e., in the order in which you began them), and should include for each project a description of the goal, the product (computer program, hand graph, computer graph, etc.), the data, and some interpretation. Reports must be reproducible and of high quality in terms of writing, grammar, presentation, etc.
+> This project aims to create reusable codes that create the inter-response time plot for the DRL-20 paradigm for my first year projects. My first year project looks at the effect of acetylcholine antagonists in the nucleus accumbens on rats' impulsive action, measured by the DRL-20 paradigm (restrain lever press for 20 seconds to get a sugar pallet). The 3 main DVs we're looking at is reinforcerns earned, lever presses, and efficiency (reinforcers earned/total level presses), which is easy to calculate through Excel or SPSS. The inter-reponse time plot, however, require some data wrangling and is a pain in the ass to do in Excel, so that's why I want to use R to make it easier here. 
+
+```{r load-in-packages}
+library(readxl)
+library(tidyverse)
+```
+
+```{r read-in-data}
+IE_CArray_DD1 <- read_excel("data/IE_CArray_DD1.xlsx")
+
+#clean the rows
+table(IE_CArray_DD1$Subject) 
+#11 rows that is the header, need to filter them out
+IE_D1 <- IE_CArray_DD1 %>%
+  filter(!(Subject %in% "Subject"))
+as_tibble(IE_D1)
+#check the data
+table(IE_D1$Subject) #looks good, now I need to convey Box and Carray to numbers
+IE_D1$Box <- as.numeric(IE_D1$Box)
+IE_D1$Carray <- as.numeric(IE_D1$Carray)
+```
+
+```{r clean-the-data}
+IE_D1$time <- round(IE_D1$Carray)/100 
+IE_D1$interval <-  c(0, diff(IE_D1$time))
+IE_D1$interval <- ifelse(IE_D1$interval < 0, 0, IE_D1$interval)
+```
+
+```{r check}
+table(IE_D1$Subject, IE_D1$Drug)
+#IE_D1$divisor <- ifelse(IE)
+```
+From the table, we can tell that 1 rat got High dose on that day, 4 got Low dose, 3 got Medium dose, and 4 got Vehicle (saline control).
+
+```{r plot-histogram}
+hist <- ggplot(IE_D1,
+    aes(x = interval, fill = Drug)) +
+  geom_histogram(binwidth = 2) +
+  facet_wrap(~ Drug, nrow = 4) +
+  theme_minimal()
+hist
+
+#get bin counts
+bin_data <- ggplot_build(hist)$data[[1]]
+head(bin_data)
+
+#create count1 as the average interval across rats
+bin_data$count1 <- ifelse(bin_data$PANEL == 2, bin_data$count/4, bin_data$count)
+bin_data$count1 <- ifelse(bin_data$PANEL == 3, bin_data$count1/3, bin_data$count1)
+bin_data$count1 <- ifelse(bin_data$PANEL == 4, bin_data$count1/4, bin_data$count1)
+bin_data$count1 <- round(bin_data$count1)
+
+#create drug variable
+bin_data$drug <- ifelse(bin_data$PANEL == 1, "High dose", 0)
+bin_data$drug <- ifelse(bin_data$PANEL == 2, "Lose dose", bin_data$drug)
+bin_data$drug <- ifelse(bin_data$PANEL == 3, "Medium dose", bin_data$drug)
+bin_data$drug <- ifelse(bin_data$PANEL == 4, "Vehicle", bin_data$drug)
+
+ggplot(bin_data, aes(x = x, y = count1, fill = drug)) +
+  geom_col() +
+  facet_wrap(~ group, nrow = 4) +
+  labs(title = "Inter-Response Time for Four Doses of Drugs",
+       x = "Inter-Response Time",
+       y = "Count", 
+       fill = "Drug") +
+  theme_minimal()
+```
+
+```{r plot-density}
+ggplot(IE_D1,
+    aes(x = interval, color = Drug)) +
+  geom_density(linewidth = 1, alpha = .5) +
+  theme_minimal() 
+#+ scale_color_viridis_d() #for discrete color
+
+ggplot(bin_data,
+    aes(x = x, y = count1, color = factor(group))) +
+  geom_smooth(method = "loess") +
+  theme_minimal()
+```
+
+```{r plot-histogram-density}
+#ggplot(IE_D1,
+#    aes(x = interval, fill = Drug)) +
+#  geom_histogram(binwidth = 1, alpha = .5, position = "identity") +
+#  geom_line(aes(y = ..count.., linetype = Drug)) +
+#  theme_minimal() +
+#  labs(title = "Histogram with Scaled Density Line", x = "Values", y = "Count/Density")
+#+ scale_color_viridis_d()
+
+ggplot(bin_data, aes(x = x, y = count1, linetype = drug, color = drug)) +
+  geom_line(size = 1) +
+  labs(title = "Inter-Response Time for Four Doses of Drugs",
+       x = "Inter-Response Time",
+       y = "Count", 
+       fill = "Drug") +
+  theme_minimal()
+```
+

@@ -2,4 +2,191 @@
 title: "Portfolio 7"
 ---
 
-> The projects should be numbered consecutively (i.e., in the order in which you began them), and should include for each project a description of the goal, the product (computer program, hand graph, computer graph, etc.), the data, and some interpretation. Reports must be reproducible and of high quality in terms of writing, grammar, presentation, etc.
+> Again, this project aims to create the right inter-response time plot for my first year project, because, obviously, I made some mistakes in portfolio piece 05 was not correct, probobly for some data management or coding problem. So this the my third attempt to create a correct IRT plot, with pre-cleaned datasets from Excel. Sometimes the simplest way might be the best way...
+
+### Prep.
+
+```{r read-in-data}
+library(readxl)
+library(tidyverse)
+
+IM_DD1_ArrayC_clean <- read_excel("data/fyp/IRT/IM_DD1_ArrayC_clean.xlsx")
+IM_DD2_ArrayC_clean <- read_excel("data/fyp/IRT/IM_DD2_ArrayC_clean.xlsx")
+IM_DD3_ArrayC_clean <- read_excel("data/fyp/IRT/IM_DD3_ArrayC_clean.xlsx")
+IM_DD4_ArrayC_clean <- read_excel("data/fyp/IRT/IM_DD4_ArrayC_clean.xlsx")
+IM_DD5_ArrayC_clean <- read_excel("data/fyp/IRT/IM_DD5_ArrayC_clean.xlsx")
+```
+
+```{r combine}
+# combine Carray data from all five days
+IM_Carray_all_clean <- bind_rows(IM_DD1_ArrayC_clean, IM_DD2_ArrayC_clean, IM_DD3_ArrayC_clean, IM_DD4_ArrayC_clean, IM_DD5_ArrayC_clean)
+
+# check the dataset to make sure there's no wierd rows
+table(IM_Carray_all_clean$Subject)
+IM_Carray_all_clean %>%
+  count(Carray == 0)
+
+# all looks good! Now change the column name to something more intuitive
+IM_Carray_all_clean <- IM_Carray_all_clean %>%
+  rename(
+    Day = Experiment
+  )
+```
+
+```{r clean-data}
+IM_Carray_all_clean$Drug <- ifelse(IM_Carray_all_clean$Drug %in% c("M_HI", "MEC_HI", "MEC-HI"), "M_HIGH", IM_Carray_all_clean$Drug)
+IM_Carray_all_clean$Drug <- ifelse(IM_Carray_all_clean$Drug %in% c("M_LO", "MEC_LO", "MEC-LO", "MEC-LOW"), "M_LOW", IM_Carray_all_clean$Drug)
+IM_Carray_all_clean$Drug <- ifelse(IM_Carray_all_clean$Drug %in% c("S_HI", "SCOP_HI", "SCOP-HI"), "S_HIGH", IM_Carray_all_clean$Drug)
+IM_Carray_all_clean$Drug <- ifelse(IM_Carray_all_clean$Drug %in% c("S_LO", "SCOP_LO", "SCOP-LOW", "SCP-LOW", "SCOP-LO"), "S_LOW", IM_Carray_all_clean$Drug)
+
+# exclude IM10, who had some brain damage per histology
+IM_Carray_all_clean <- IM_Carray_all_clean %>%
+  filter(Subject != "IM10")
+
+# check
+table(IM_Carray_all_clean$Drug)
+```
+
+Carray is a compound variable where each event time in the box is saved with an event code:
+.1 = Right lever press
+.2 = Left Lever press
+.3 = Nosepoke
+.4 = FREE PELLET
+.5 = EARNED PELLET
+The number BEFORE the decimal is a time stamp. The two rightmost numbers are .XY
+For example, 1800 would be 18.00 seconds.
+
+So now ew should decompose them into different variables: Time and Event.
+
+```{r decompose-carray}
+# Separate the 'Carray' column into 'Time' and 'Event.'
+IM_Carray_all_clean <- IM_Carray_all_clean %>%
+  separate(Carray, into = c("Time", "Event"), sep = "\\.")
+
+IM_Carray_all_clean$Time <- as.numeric(IM_Carray_all_clean$Time)
+IM_Carray_all_clean$Time <- IM_Carray_all_clean$Time / 100
+
+# check again, there should be no 4 in the Event row
+table(IM_Carray_all_clean$Event)
+# looks good!
+
+# now export the dataset for future use
+write_rds(IM_Carray_all_clean, "data/fyp/IM_Carray_all_clean.rds")
+
+# most importantly! We need to filter out all rows that are not lever presses! Forgetting to do so before caused me to plot the wrong plot! Because I treated all events as lever presses!
+IM_Carray_all_clean <- IM_Carray_all_clean %>%
+  filter(Event == 1)
+```
+
+Now we need to compute the intervals for the IRT plot.
+```{r compute-interval}
+#calculate the inter-response time
+IM_Carray_all_clean <- IM_Carray_all_clean %>%
+  group_by(Subject, Day) %>%
+  mutate(Interval = c(0, diff(Time))) %>%
+  ungroup()
+
+# check if there is any weird data points 
+IM_Carray_all_clean %>%
+  filter(Interval < 0) %>%
+  count()
+# looks good! no negative intervals!
+IM_Carray_all_clean %>%
+  filter(Interval == 0) %>%
+  count()
+# a lot of 0s, but I guess it makes sense that sometimes rats press levers a few times in a row
+
+# examines intervals descriptively
+interval_count <- IM_Carray_all_clean %>%
+  group_by(Drug) %>%
+  mutate(Interval = round(Interval)) %>%
+  count(Interval)
+```
+
+Now the basic data management is done. We need to get the frequency percentage of each bin (2s) to prepare for the IRT plot.
+
+```{r cal-bin}
+# Create bins for intervals with a width of 2
+IM_Carray_all_clean <- IM_Carray_all_clean %>%
+  mutate(IntervalBin = floor(Interval / 2) * 2)  # Creates bins of width 2
+
+# Calculate frequency of intervals within each bin and drug condition
+bins <- IM_Carray_all_clean %>%
+  group_by(Drug, IntervalBin) %>%
+  summarise(Frequency = n(), .groups = "drop")
+
+# calculate percentage
+bins <- bins %>%
+  group_by(Drug) %>%
+  mutate(Percentage = Frequency / sum(Frequency) * 100)  # Calculate percentage
+```
+
+```{r plot}
+# Create the percentage plot
+bins %>%
+  filter(IntervalBin <= 40) %>%
+ggplot(aes(x = IntervalBin, y = Percentage, color = Drug, group = Drug)) +
+  geom_line() +  # Add lines to the plot
+  geom_point() +  # Optionally add points to show the frequency at each bin
+  labs(
+    title = "Inter-Response Times Following Acetylcholine Receptor Blockade",
+    x = "Seconds",
+    y = "Percentage Responses",
+    color = NULL
+  ) +
+  scale_color_manual(
+    values = c("M_HIGH" = "#397DB0", "M_LOW" = "#9DC7DD", "VEH" = "#fbf0d9", 
+               "S_LOW" = "#9ED17B", "S_HIGH" = "#3D9F3C"),  # Custom colors
+    labels = c("M_HIGH" = "Mecamylamine High", 
+               "M_LOW" = "Mecamylamine Low", 
+               "VEH" = "Vehicle", 
+               "S_LOW" = "Scopolamine Low", 
+               "S_HIGH" = "Scopolamine High")
+  ) +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min(bins$IntervalBin), max(bins$IntervalBin), by = 2)) +  # Set x-axis breaks at intervals of 2
+  theme(
+    legend.position = c(1, 1),  # Position the legend at the top-right corner
+    legend.justification = c(1, 1),  # Align the legend to the top-right corner
+    axis.text.x = element_text(size = 11, face = "bold"), 
+    axis.text.y = element_text(size = 15, face = "bold"),  
+    axis.title.x = element_text(face = "bold", size = 15), 
+    axis.title.y = element_text(face = "bold", size = 15), 
+    plot.title = element_text(hjust = 0.5, size = 15, face = "bold")
+  )
+
+# Create the Frequency plot
+bins %>%
+  filter(IntervalBin <= 40) %>%
+ggplot(aes(x = IntervalBin, y = Frequency, color = Drug, group = Drug)) +
+  geom_line() +  # Add lines to the plot
+  geom_point() +  # Optionally add points to show the frequency at each bin
+  labs(
+    title = "Inter-response Times Following Acetylcholine Receptor Blockade",
+    x = NULL,
+    y = "Total Response Frequency",
+    color = NULL
+  ) +
+  scale_color_manual(
+    values = c("M_HIGH" = "#397DB0", "M_LOW" = "#9DC7DD", "VEH" = "#fbf0d9", 
+               "S_LOW" = "#9ED17B", "S_HIGH" = "#3D9F3C"),  # Custom colors
+    labels = c("M_HIGH" = "Mecamylamine High", 
+               "M_LOW" = "Mecamylamine Low", 
+               "VEH" = "Vehicle", 
+               "S_LOW" = "Scopolamine Low", 
+               "S_HIGH" = "Scopolamine High")
+  ) +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(min(bins$IntervalBin), max(bins$IntervalBin), by = 2)) +  # Set x-axis breaks at intervals of 2
+  theme(
+    legend.position = c(1, 1),  # Position the legend at the top-right corner
+    legend.justification = c(1, 1),  # Align the legend to the top-right corner
+    axis.text.x = element_text(size = 11, face = "bold"), 
+    axis.text.y = element_text(size = 15, face = "bold"),  
+    axis.title.x = element_text(face = "bold", size = 15), 
+    axis.title.y = element_text(face = "bold", size = 15), 
+    plot.title = element_text(hjust = 0.5, size = 15, face = "bold")
+  )
+```
+
+Yeah! This is what we are wanted to build!
